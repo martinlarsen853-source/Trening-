@@ -24,10 +24,10 @@ jobs:
           python3 - << 'PYEOF'
           import urllib.request, urllib.error, json, os, sys
 
-          TOKEN       = os.environ["VERCEL_TOKEN"]
-          SB_KEY      = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
-          ANTHROPIC   = os.environ["ANTHROPIC_API_KEY"]
-          PROJECT     = "trening-dashboard"
+          TOKEN     = os.environ["VERCEL_TOKEN"]
+          SB_KEY    = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+          ANTHROPIC = os.environ["ANTHROPIC_API_KEY"]
+          PROJECT   = "trening-dashboard"
 
           def api(method, path, data=None):
               url = "https://api.vercel.com" + path
@@ -43,14 +43,14 @@ jobs:
                   body = {}
                   try:    body = json.loads(e.read())
                   except: pass
-                  print(f"HTTP {e.code} on {method} {path}: {body}", file=sys.stderr)
+                  print(f"HTTP {e.code} {method} {path}: {body}", file=sys.stderr)
                   return body
 
           # Auth check
           me = api("GET", "/v2/user")
           uid = me.get("user", {}).get("id", "")
           if not uid:
-              print("ERROR: Could not authenticate with Vercel token", file=sys.stderr)
+              print("ERROR: Vercel auth failed. Check VERCEL_TOKEN secret.", file=sys.stderr)
               print(f"Response: {me}", file=sys.stderr)
               sys.exit(1)
           print(f"Vercel user: {me['user'].get('username','?')} ({uid})")
@@ -61,14 +61,16 @@ jobs:
               pid = resp["id"]
               print(f"Project exists: {pid}")
           else:
-              resp = api("POST", "/v10/projects", {"name": PROJECT, "framework": "nextjs"})
+              resp = api("POST", "/v10/projects", {
+                  "name": PROJECT,
+                  "framework": "nextjs",
+              })
               pid = resp.get("id", "")
               if not pid:
                   print("ERROR creating project:", json.dumps(resp), file=sys.stderr)
                   sys.exit(1)
               print(f"Created project: {pid}")
 
-          # All environment variables
           ANON_KEY = (
               "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
               ".eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxza3BubWZvd3pvdW9zY3J2YWVwIiwi"
@@ -91,7 +93,6 @@ jobs:
               ("NEXT_PUBLIC_APP_URL",         "https://trening-dashboard.vercel.app"),
           ]
 
-          # Fetch existing to enable upsert
           ex_resp = api("GET", f"/v10/projects/{pid}/env?limit=100")
           existing = {e["key"]: e["id"] for e in ex_resp.get("envs", [])}
           targets  = ["production", "preview", "development"]
@@ -105,85 +106,30 @@ jobs:
                       {"key": key, "value": value, "type": "encrypted", "target": targets})
               print(f"  ✓ {key}")
 
-          # Write .vercel/project.json for CLI
           os.makedirs(".vercel", exist_ok=True)
           with open(".vercel/project.json", "w") as f:
               json.dump({"orgId": uid, "projectId": pid}, f)
           print(f"\nReady — orgId={uid}  projectId={pid}")
           PYEOF
 
-      # ── 2. Node + deps ───────────────────────────────────────────────────
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - run: npm ci
-
-      # ── 3. Install Vercel CLI ─────────────────────────────────────────────
+      # ── 2. Install Vercel CLI ─────────────────────────────────────────────
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
 
-      # ── 4. Build (env vars injected explicitly so NEXT_PUBLIC_* are baked in)
-      - name: Build
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          NEXT_PUBLIC_SUPABASE_URL: "https://lskpnmfowzouoscrvaep.supabase.co"
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxza3BubWZvd3pvdW9zY3J2YWVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MzI3NjgsImV4cCI6MjA5MTQwODc2OH0.Xv0dN6FUT6Ey88Ew3yv3TKG_-TjEiFdllzheQPjPlr0"
-          NEXT_PUBLIC_APP_URL: "https://trening-dashboard.vercel.app"
-        run: vercel build --prod --yes --token="$VERCEL_TOKEN"
-
-      # ── 5. Deploy ────────────────────────────────────────────────────────
-      - name: Deploy to production
+      # ── 3. Deploy (Vercel builds on their servers — no local npm needed) ──
+      - name: Deploy to Vercel
         id: deploy
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
           set -euo pipefail
-          OUTPUT=$(vercel deploy --prebuilt --prod --yes --token="$VERCEL_TOKEN" 2>&1)
+          OUTPUT=$(vercel --prod --yes --token="$VERCEL_TOKEN" 2>&1)
           echo "$OUTPUT"
           URL=$(echo "$OUTPUT" | grep -oE 'https://[^[:space:]]+\.vercel\.app' | tail -1)
-          echo "deploy_url=${URL}" >> "$GITHUB_OUTPUT"
           echo "## ✅ Appen er live!" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "**URL:** ${URL}" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Åpne denne URL-en i nettleseren for å se appen." >> "$GITHUB_STEP_SUMMARY"
+          echo "Åpne denne URL-en i nettleseren." >> "$GITHUB_STEP_SUMMARY"
           vercel alias set "$URL" trening-martin.vercel.app --token="$VERCEL_TOKEN" 2>/dev/null || true
-
-      # ── 6. Update APP_URL with real domain ───────────────────────────────
-      - name: Update NEXT_PUBLIC_APP_URL
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: |
-          python3 - << 'PYEOF'
-          import urllib.request, urllib.error, json, os
-
-          TOKEN = os.environ["VERCEL_TOKEN"]
-          with open(".vercel/project.json") as f:
-              pid = json.load(f)["projectId"]
-
-          def api(method, path, data=None):
-              url = "https://api.vercel.com" + path
-              req = urllib.request.Request(url, method=method.upper())
-              req.add_header("Authorization", "Bearer " + TOKEN)
-              req.add_header("Content-Type", "application/json")
-              if data is not None:
-                  req.data = json.dumps(data).encode()
-              try:
-                  with urllib.request.urlopen(req) as r:
-                      return json.loads(r.read())
-              except Exception:
-                  return {}
-
-          deploys = api("GET", f"/v6/deployments?projectId={pid}&target=production&limit=1")
-          deps = deploys.get("deployments", [])
-          if deps:
-              real_url = "https://" + deps[0].get("url", "trening-dashboard.vercel.app")
-              ex = api("GET", f"/v10/projects/{pid}/env?limit=100")
-              existing = {e["key"]: e["id"] for e in ex.get("envs", [])}
-              if "NEXT_PUBLIC_APP_URL" in existing:
-                  api("PATCH", f"/v10/projects/{pid}/env/{existing['NEXT_PUBLIC_APP_URL']}",
-                      {"value": real_url, "target": ["production","preview","development"]})
-              print(f"APP_URL → {real_url}")
-          PYEOF
+          echo "deploy_url=${URL}" >> "$GITHUB_OUTPUT"

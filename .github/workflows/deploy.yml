@@ -40,13 +40,20 @@ jobs:
                   with urllib.request.urlopen(req) as r:
                       return json.loads(r.read())
               except urllib.error.HTTPError as e:
-                  try:    return json.loads(e.read())
-                  except: return {}
+                  body = {}
+                  try:    body = json.loads(e.read())
+                  except: pass
+                  print(f"HTTP {e.code} on {method} {path}: {body}", file=sys.stderr)
+                  return body
 
           # Auth check
           me = api("GET", "/v2/user")
-          org_id = me.get("user", {}).get("id", "")
-          print(f"Vercel user: {me.get('user',{}).get('username','?')} ({org_id})")
+          uid = me.get("user", {}).get("id", "")
+          if not uid:
+              print("ERROR: Could not authenticate with Vercel token", file=sys.stderr)
+              print(f"Response: {me}", file=sys.stderr)
+              sys.exit(1)
+          print(f"Vercel user: {me['user'].get('username','?')} ({uid})")
 
           # Get or create project
           resp = api("GET", f"/v9/projects/{PROJECT}")
@@ -57,19 +64,20 @@ jobs:
               resp = api("POST", "/v10/projects", {"name": PROJECT, "framework": "nextjs"})
               pid = resp.get("id", "")
               if not pid:
-                  print("ERROR:", json.dumps(resp), file=sys.stderr)
+                  print("ERROR creating project:", json.dumps(resp), file=sys.stderr)
                   sys.exit(1)
               print(f"Created project: {pid}")
 
           # All environment variables
+          ANON_KEY = (
+              "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
+              ".eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxza3BubWZvd3pvdW9zY3J2YWVwIiwi"
+              "cm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MzI3NjgsImV4cCI6MjA5MTQwODc2OH0"
+              ".Xv0dN6FUT6Ey88Ew3yv3TKG_-TjEiFdllzheQPjPlr0"
+          )
           env_vars = [
-              ("NEXT_PUBLIC_SUPABASE_URL",
-               "https://lskpnmfowzouoscrvaep.supabase.co"),
-              ("NEXT_PUBLIC_SUPABASE_ANON_KEY",
-               "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
-               ".eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxza3BubWZvd3pvdW9zY3J2YWVwIiwi"
-               "cm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MzI3NjgsImV4cCI6MjA5MTQwODc2OH0"
-               ".Xv0dN6FUT6Ey88Ew3yv3TKG_-TjEiFdllzheQPjPlr0"),
+              ("NEXT_PUBLIC_SUPABASE_URL",   "https://lskpnmfowzouoscrvaep.supabase.co"),
+              ("NEXT_PUBLIC_SUPABASE_ANON_KEY", ANON_KEY),
               ("SUPABASE_SERVICE_ROLE_KEY",   SB_KEY),
               ("INTERVALS_ICU_API_KEY",       "2ygl9hezsed4c6nb09a1aq37c"),
               ("INTERVALS_ICU_ATHLETE_ID",    "0"),
@@ -93,15 +101,15 @@ jobs:
                   api("PATCH", f"/v10/projects/{pid}/env/{existing[key]}",
                       {"value": value, "target": targets})
               else:
-                  api("POST",  f"/v10/projects/{pid}/env",
+                  api("POST", f"/v10/projects/{pid}/env",
                       {"key": key, "value": value, "type": "encrypted", "target": targets})
               print(f"  ✓ {key}")
 
           # Write .vercel/project.json for CLI
           os.makedirs(".vercel", exist_ok=True)
           with open(".vercel/project.json", "w") as f:
-              json.dump({"orgId": org_id, "projectId": pid}, f)
-          print(f"\nReady — orgId={org_id}  projectId={pid}")
+              json.dump({"orgId": uid, "projectId": pid}, f)
+          print(f"\nReady — orgId={uid}  projectId={pid}")
           PYEOF
 
       # ── 2. Node + deps ───────────────────────────────────────────────────
@@ -112,36 +120,38 @@ jobs:
 
       - run: npm ci
 
-      # ── 3. Build ─────────────────────────────────────────────────────────
+      # ── 3. Install Vercel CLI ─────────────────────────────────────────────
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
 
+      # ── 4. Build (env vars injected explicitly so NEXT_PUBLIC_* are baked in)
       - name: Build
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          NEXT_PUBLIC_SUPABASE_URL: "https://lskpnmfowzouoscrvaep.supabase.co"
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxza3BubWZvd3pvdW9zY3J2YWVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MzI3NjgsImV4cCI6MjA5MTQwODc2OH0.Xv0dN6FUT6Ey88Ew3yv3TKG_-TjEiFdllzheQPjPlr0"
+          NEXT_PUBLIC_APP_URL: "https://trening-dashboard.vercel.app"
         run: vercel build --prod --yes --token="$VERCEL_TOKEN"
 
-      # ── 4. Deploy ────────────────────────────────────────────────────────
+      # ── 5. Deploy ────────────────────────────────────────────────────────
       - name: Deploy to production
         id: deploy
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
+          set -euo pipefail
           OUTPUT=$(vercel deploy --prebuilt --prod --yes --token="$VERCEL_TOKEN" 2>&1)
           echo "$OUTPUT"
-          # Extract the https:// URL from output
-          URL=$(echo "$OUTPUT" | grep -o 'https://[^ ]*\.vercel\.app[^ ]*' | tail -1)
-          echo "deploy_url=$URL" >> "$GITHUB_OUTPUT"
+          URL=$(echo "$OUTPUT" | grep -oE 'https://[^[:space:]]+\.vercel\.app' | tail -1)
+          echo "deploy_url=${URL}" >> "$GITHUB_OUTPUT"
           echo "## ✅ Appen er live!" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "**URL:** $URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "**URL:** ${URL}" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Åpne denne URL-en i nettleseren." >> "$GITHUB_STEP_SUMMARY"
-          # Try to set a cleaner alias
+          echo "Åpne denne URL-en i nettleseren for å se appen." >> "$GITHUB_STEP_SUMMARY"
           vercel alias set "$URL" trening-martin.vercel.app --token="$VERCEL_TOKEN" 2>/dev/null || true
-          echo "Alias attempt: trening-martin.vercel.app"
 
-      # ── 5. Update APP_URL with real domain ───────────────────────────────
+      # ── 6. Update APP_URL with real domain ───────────────────────────────
       - name: Update NEXT_PUBLIC_APP_URL
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}

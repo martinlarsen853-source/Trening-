@@ -123,11 +123,23 @@ jobs:
 
       # ── 4. Deploy ────────────────────────────────────────────────────────
       - name: Deploy to production
+        id: deploy
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          URL=$(vercel deploy --prebuilt --prod --yes --token="$VERCEL_TOKEN" 2>&1 | tail -1)
-          echo "Deployed: $URL"
+          OUTPUT=$(vercel deploy --prebuilt --prod --yes --token="$VERCEL_TOKEN" 2>&1)
+          echo "$OUTPUT"
+          # Extract the https:// URL from output
+          URL=$(echo "$OUTPUT" | grep -o 'https://[^ ]*\.vercel\.app[^ ]*' | tail -1)
+          echo "deploy_url=$URL" >> "$GITHUB_OUTPUT"
+          echo "## ✅ Appen er live!" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**URL:** $URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Åpne denne URL-en i nettleseren." >> "$GITHUB_STEP_SUMMARY"
+          # Try to set a cleaner alias
+          vercel alias set "$URL" trening-martin.vercel.app --token="$VERCEL_TOKEN" 2>/dev/null || true
+          echo "Alias attempt: trening-martin.vercel.app"
 
       # ── 5. Update APP_URL with real domain ───────────────────────────────
       - name: Update NEXT_PUBLIC_APP_URL

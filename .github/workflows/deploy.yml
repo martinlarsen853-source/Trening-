@@ -116,20 +116,29 @@ jobs:
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
 
-      # ── 3. Deploy (Vercel builds on their servers — no local npm needed) ──
+      # ── 3. Verify project config was created ─────────────────────────────
+      - name: Verify project config
+        run: |
+          echo "=== .vercel/project.json ==="
+          cat .vercel/project.json || echo "ERROR: file not found!"
+
+      # ── 4. Deploy (Vercel builds on their servers) ────────────────────────
       - name: Deploy to Vercel
         id: deploy
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          set -euo pipefail
-          OUTPUT=$(vercel --prod --yes --token="$VERCEL_TOKEN" 2>&1)
-          echo "$OUTPUT"
-          URL=$(echo "$OUTPUT" | grep -oE 'https://[^[:space:]]+\.vercel\.app' | tail -1)
-          echo "## ✅ Appen er live!" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "**URL:** ${URL}" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Åpne denne URL-en i nettleseren." >> "$GITHUB_STEP_SUMMARY"
-          vercel alias set "$URL" trening-martin.vercel.app --token="$VERCEL_TOKEN" 2>/dev/null || true
+          vercel deploy --prod --yes --token="$VERCEL_TOKEN" 2>&1 | tee /tmp/vercel.log
+          VERCEL_EXIT=${PIPESTATUS[0]}
+          URL=$(grep -oE 'https://[^[:space:]]+\.vercel\.app' /tmp/vercel.log | tail -1)
+          echo "Exit code: $VERCEL_EXIT"
+          echo "URL: $URL"
+          echo "## Deployment" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$VERCEL_EXIT" -eq 0 ]; then
+            echo "✅ **Appen er live:** $URL" >> "$GITHUB_STEP_SUMMARY"
+            vercel alias set "$URL" trening-martin.vercel.app --token="$VERCEL_TOKEN" 2>/dev/null || true
+          else
+            echo "❌ Deployment feilet (se logg over)" >> "$GITHUB_STEP_SUMMARY"
+            exit $VERCEL_EXIT
+          fi
           echo "deploy_url=${URL}" >> "$GITHUB_OUTPUT"

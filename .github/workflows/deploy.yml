@@ -1,0 +1,167 @@
+name: Deploy to Vercel
+
+on:
+  push:
+    branches:
+      - main
+      - 'claude/**'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── 1. Create Vercel project + set all env vars ──────────────────────
+      - name: Configure Vercel project
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          python3 - << 'PYEOF'
+          import urllib.request, urllib.error, json, os, sys
+
+          TOKEN       = os.environ["VERCEL_TOKEN"]
+          SB_KEY      = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+          ANTHROPIC   = os.environ["ANTHROPIC_API_KEY"]
+          PROJECT     = "trening-dashboard"
+
+          def api(method, path, data=None):
+              url = "https://api.vercel.com" + path
+              req = urllib.request.Request(url, method=method.upper())
+              req.add_header("Authorization", "Bearer " + TOKEN)
+              req.add_header("Content-Type", "application/json")
+              if data is not None:
+                  req.data = json.dumps(data).encode()
+              try:
+                  with urllib.request.urlopen(req) as r:
+                      return json.loads(r.read())
+              except urllib.error.HTTPError as e:
+                  try:    return json.loads(e.read())
+                  except: return {}
+
+          # Auth check
+          me = api("GET", "/v2/user")
+          org_id = me.get("user", {}).get("id", "")
+          print(f"Vercel user: {me.get('user',{}).get('username','?')} ({org_id})")
+
+          # Get or create project
+          resp = api("GET", f"/v9/projects/{PROJECT}")
+          if "id" in resp:
+              pid = resp["id"]
+              print(f"Project exists: {pid}")
+          else:
+              resp = api("POST", "/v10/projects", {"name": PROJECT, "framework": "nextjs"})
+              pid = resp.get("id", "")
+              if not pid:
+                  print("ERROR:", json.dumps(resp), file=sys.stderr)
+                  sys.exit(1)
+              print(f"Created project: {pid}")
+
+          # All environment variables
+          env_vars = [
+              ("NEXT_PUBLIC_SUPABASE_URL",
+               "https://lskpnmfowzouoscrvaep.supabase.co"),
+              ("NEXT_PUBLIC_SUPABASE_ANON_KEY",
+               "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
+               ".eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxza3BubWZvd3pvdW9zY3J2YWVwIiwi"
+               "cm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MzI3NjgsImV4cCI6MjA5MTQwODc2OH0"
+               ".Xv0dN6FUT6Ey88Ew3yv3TKG_-TjEiFdllzheQPjPlr0"),
+              ("SUPABASE_SERVICE_ROLE_KEY",   SB_KEY),
+              ("INTERVALS_ICU_API_KEY",       "2ygl9hezsed4c6nb09a1aq37c"),
+              ("INTERVALS_ICU_ATHLETE_ID",    "0"),
+              ("ANTHROPIC_API_KEY",           ANTHROPIC),
+              ("DEFAULT_LAT",                 "63.43"),
+              ("DEFAULT_LON",                 "10.40"),
+              ("WEATHER_USER_AGENT",          "TrainingDashboard/1.0 martin@example.com"),
+              ("HEVY_API_ENABLED",            "false"),
+              ("CRON_SECRET",
+               "d8393213cf037e9a84cf237b2f27034b559077ff51f07d0eee1f43b2f39f79db"),
+              ("NEXT_PUBLIC_APP_URL",         "https://trening-dashboard.vercel.app"),
+          ]
+
+          # Fetch existing to enable upsert
+          ex_resp = api("GET", f"/v10/projects/{pid}/env?limit=100")
+          existing = {e["key"]: e["id"] for e in ex_resp.get("envs", [])}
+          targets  = ["production", "preview", "development"]
+
+          for key, value in env_vars:
+              if key in existing:
+                  api("PATCH", f"/v10/projects/{pid}/env/{existing[key]}",
+                      {"value": value, "target": targets})
+              else:
+                  api("POST",  f"/v10/projects/{pid}/env",
+                      {"key": key, "value": value, "type": "encrypted", "target": targets})
+              print(f"  ✓ {key}")
+
+          # Write .vercel/project.json for CLI
+          os.makedirs(".vercel", exist_ok=True)
+          with open(".vercel/project.json", "w") as f:
+              json.dump({"orgId": org_id, "projectId": pid}, f)
+          print(f"\nReady — orgId={org_id}  projectId={pid}")
+          PYEOF
+
+      # ── 2. Node + deps ───────────────────────────────────────────────────
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci
+
+      # ── 3. Build ─────────────────────────────────────────────────────────
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Build
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: vercel build --prod --yes --token="$VERCEL_TOKEN"
+
+      # ── 4. Deploy ────────────────────────────────────────────────────────
+      - name: Deploy to production
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          URL=$(vercel deploy --prebuilt --prod --yes --token="$VERCEL_TOKEN" 2>&1 | tail -1)
+          echo "Deployed: $URL"
+
+      # ── 5. Update APP_URL with real domain ───────────────────────────────
+      - name: Update NEXT_PUBLIC_APP_URL
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          python3 - << 'PYEOF'
+          import urllib.request, urllib.error, json, os
+
+          TOKEN = os.environ["VERCEL_TOKEN"]
+          with open(".vercel/project.json") as f:
+              pid = json.load(f)["projectId"]
+
+          def api(method, path, data=None):
+              url = "https://api.vercel.com" + path
+              req = urllib.request.Request(url, method=method.upper())
+              req.add_header("Authorization", "Bearer " + TOKEN)
+              req.add_header("Content-Type", "application/json")
+              if data is not None:
+                  req.data = json.dumps(data).encode()
+              try:
+                  with urllib.request.urlopen(req) as r:
+                      return json.loads(r.read())
+              except Exception:
+                  return {}
+
+          deploys = api("GET", f"/v6/deployments?projectId={pid}&target=production&limit=1")
+          deps = deploys.get("deployments", [])
+          if deps:
+              real_url = "https://" + deps[0].get("url", "trening-dashboard.vercel.app")
+              ex = api("GET", f"/v10/projects/{pid}/env?limit=100")
+              existing = {e["key"]: e["id"] for e in ex.get("envs", [])}
+              if "NEXT_PUBLIC_APP_URL" in existing:
+                  api("PATCH", f"/v10/projects/{pid}/env/{existing['NEXT_PUBLIC_APP_URL']}",
+                      {"value": real_url, "target": ["production","preview","development"]})
+              print(f"APP_URL → {real_url}")
+          PYEOF

@@ -25,6 +25,7 @@ export default function InnstillingerPage() {
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
   const [settingsSaved, setSettingsSaved] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [fullSyncing, setFullSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<string | null>(null);
   const [newGoal, setNewGoal] = useState({ label: '', type: 'primary' });
   const [showNewGoal, setShowNewGoal] = useState(false);
@@ -74,6 +75,24 @@ export default function InnstillingerPage() {
       setSyncResult('Nettverksfeil');
     } finally {
       setSyncing(false);
+    }
+  }
+
+  async function handleFullSync() {
+    setFullSyncing(true);
+    setSyncResult(null);
+    try {
+      const res = await fetch('/api/sync?full=true', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        setSyncResult(`Fullsynk: ${data.activities_synced} aktiviteter, ${data.wellness_synced} wellness (2 år)`);
+      } else {
+        setSyncResult('Feil: ' + (data.error || 'Ukjent feil'));
+      }
+    } catch {
+      setSyncResult('Nettverksfeil');
+    } finally {
+      setFullSyncing(false);
     }
   }
 
@@ -270,14 +289,24 @@ export default function InnstillingerPage() {
           {syncResult && (
             <p className="text-sm text-green-400">{syncResult}</p>
           )}
-          <button
-            onClick={handleSync}
-            disabled={syncing}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 border border-gray-600 rounded-lg text-sm text-white transition-colors"
-          >
-            <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
-            {syncing ? 'Synkroniserer...' : 'Manuell synk nå'}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleSync}
+              disabled={syncing || fullSyncing}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 border border-gray-600 rounded-lg text-sm text-white transition-colors"
+            >
+              <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
+              {syncing ? 'Synkroniserer...' : 'Synk nå'}
+            </button>
+            <button
+              onClick={handleFullSync}
+              disabled={syncing || fullSyncing}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-800 hover:bg-blue-700 disabled:opacity-50 border border-blue-700 rounded-lg text-sm text-white transition-colors"
+            >
+              <RefreshCw size={14} className={fullSyncing ? 'animate-spin' : ''} />
+              {fullSyncing ? 'Henter...' : 'Hent all historikk (2 år)'}
+            </button>
+          </div>
         </div>
       </Card>
 

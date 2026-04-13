@@ -24,6 +24,9 @@ export async function POST(req: NextRequest) {
 
   const supabase = createServiceClient();
 
+  const { searchParams } = new URL(req.url);
+  const fullSync = searchParams.get('full') === 'true';
+
   try {
     const { data: syncData } = await supabase
       .from('sync_status')
@@ -31,9 +34,11 @@ export async function POST(req: NextRequest) {
       .eq('source', 'intervals_icu')
       .maybeSingle();
 
-    const oldest = syncData?.last_synced_at
-      ? format(subDays(new Date(syncData.last_synced_at), 1), 'yyyy-MM-dd')
-      : format(subDays(new Date(), 30), 'yyyy-MM-dd');
+    const oldest = fullSync
+      ? format(subDays(new Date(), 730), 'yyyy-MM-dd')   // 2 years back
+      : syncData?.last_synced_at
+        ? format(subDays(new Date(syncData.last_synced_at), 1), 'yyyy-MM-dd')
+        : format(subDays(new Date(), 365), 'yyyy-MM-dd'); // 1 year on first sync
 
     const newest = format(new Date(), 'yyyy-MM-dd');
 

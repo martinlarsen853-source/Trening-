@@ -3,6 +3,7 @@ import './globals.css';
 import { ServiceWorkerRegistrar } from '@/components/ServiceWorkerRegistrar';
 import { PushSubscriber } from '@/components/PushSubscriber';
 import { NavBar } from '@/components/NavBar';
+import { WeatherWidget } from '@/components/WeatherWidget';
 
 export const metadata: Metadata = {
   title: 'Beitostølen 2C',
@@ -46,14 +47,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <path d="M0,70 L0,63 L240,48 L480,60 L720,44 L960,58 L1200,46 L1440,56 L1440,70 Z" fill="white" fillOpacity="0.12"/>
             </svg>
 
-            {/* Text */}
-            <div className="relative z-10 px-5 pt-5 pb-8">
-              <p className="text-[10px] font-bold tracking-[0.28em] text-blue-300 uppercase mb-1">
-                Beitostølen Helsesportsenter
-              </p>
-              <h1 className="text-[2.4rem] font-black text-white leading-none tracking-tight drop-shadow-sm">
-                Gruppe 2C
-              </h1>
+            {/* Text + weather */}
+            <div className="relative z-10 px-5 pt-5 pb-8 flex items-start justify-between">
+              <div>
+                <p className="text-[10px] font-bold tracking-[0.28em] text-blue-300 uppercase mb-1">
+                  Beitostølen Helsesportsenter
+                </p>
+                <h1 className="text-[2.4rem] font-black text-white leading-none tracking-tight drop-shadow-sm">
+                  Gruppe 2C
+                </h1>
+              </div>
+              <WeatherWidget />
             </div>
           </header>
 

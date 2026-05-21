@@ -28,6 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <a href="/fritid" className="hover:text-blue-200 transition-colors">Fritid</a>
             <a href="/mat" className="hover:text-blue-200 transition-colors">Mat</a>
             <a href="/fellesrom" className="hover:text-blue-200 transition-colors">Fellesrom</a>
+            <a href="https://ombudsmann-6u0j9kup8-martins-projects-f84ff334.vercel.app" target="_blank" rel="noopener noreferrer" className="hover:text-blue-200 transition-colors">Ombudsmann</a>
           </div>
         </nav>
         <main className="pt-14 pb-6 min-h-screen">

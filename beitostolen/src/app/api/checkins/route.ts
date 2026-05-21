@@ -22,7 +22,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const { room_name, parent_name, duration_minutes } = await req.json();
-  if (!room_name || !parent_name || ![30, 60, 120].includes(duration_minutes)) {
+  if (!room_name || !parent_name || typeof duration_minutes !== 'number' || duration_minutes % 30 !== 0 || duration_minutes < 30 || duration_minutes > 240) {
     return NextResponse.json({ error: 'Mangler felt' }, { status: 400 });
   }
 
@@ -45,7 +45,8 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  const durationLabel = duration_minutes === 30 ? '30 min' : duration_minutes === 60 ? '1 time' : '2 timer';
+  const h = duration_minutes / 60;
+  const durationLabel = duration_minutes < 60 ? `${duration_minutes} min` : h === Math.floor(h) ? `${h} time${h !== 1 ? 'r' : ''}` : `${h} timer`;
   await sendPushToAll(
     room_name,
     `${parent_name} er i ${room_name} – ca. ${durationLabel}`,

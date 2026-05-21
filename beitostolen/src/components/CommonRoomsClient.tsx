@@ -27,7 +27,8 @@ export function CommonRoomsClient({ rooms }: Props) {
       .channel('checkins-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'room_checkins' }, (payload) => {
         if (payload.eventType === 'INSERT') {
-          setCheckins((prev) => [...prev, payload.new as RoomCheckin]);
+          const newItem = payload.new as RoomCheckin;
+          setCheckins((prev) => prev.some((c) => c.id === newItem.id) ? prev : [...prev, newItem]);
         } else if (payload.eventType === 'DELETE') {
           setCheckins((prev) => prev.filter((c) => c.id !== payload.old.id));
         }

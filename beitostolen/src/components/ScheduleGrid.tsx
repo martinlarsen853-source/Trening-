@@ -7,14 +7,26 @@ import { AbsenceModal } from './AbsenceModal';
 import { NameSetup } from './NameSetup';
 import { format, addDays, startOfWeek } from 'date-fns';
 import { nb } from 'date-fns/locale';
+import { Utensils } from 'lucide-react';
 
 const DAYS = ['Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør'];
 
-type Props = { isFritid?: boolean };
+// Meal slots — weekday vs weekend
+function getMeals(dayOfWeek: number) {
+  const isWeekend = dayOfWeek >= 6;
+  if (isWeekend) {
+    return [{ name: 'Lunsj / Middag', start: '12:00', end: '14:00' }];
+  }
+  return [
+    { name: 'Lunsj', start: '11:45', end: '13:00' },
+    { name: 'Middag', start: '15:30', end: '17:00' },
+  ];
+}
 
-export function ScheduleGrid({ isFritid = false }: Props) {
+export function ScheduleGrid() {
   const [childName, setChildName] = useState<string | null>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
+  const [fritidActivities, setFritidActivities] = useState<Activity[]>([]);
   const [absences, setAbsences] = useState<Absence[]>([]);
   const [weekStart, setWeekStart] = useState('');
   const [loading, setLoading] = useState(true);
@@ -30,27 +42,24 @@ export function ScheduleGrid({ isFritid = false }: Props) {
   }, []);
 
   useEffect(() => {
-    const endpoint = isFritid ? '/api/fritid' : '/api/activities';
-    fetch(endpoint)
+    fetch('/api/activities')
       .then((r) => r.json())
       .then((d) => {
         setActivities(d.activities ?? []);
+        setFritidActivities(d.fritidActivities ?? []);
         setAbsences(d.absences ?? []);
         setWeekStart(d.weekStart ?? '');
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [isFritid]);
+  }, []);
 
   useEffect(() => {
     const channel = supabase
       .channel('absences-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'absences' }, (payload) => {
-        if (payload.eventType === 'INSERT') {
-          setAbsences((prev) => [...prev, payload.new as Absence]);
-        } else if (payload.eventType === 'DELETE') {
-          setAbsences((prev) => prev.filter((a) => a.id !== payload.old.id));
-        }
+        if (payload.eventType === 'INSERT') setAbsences((p) => [...p, payload.new as Absence]);
+        else if (payload.eventType === 'DELETE') setAbsences((p) => p.filter((a) => a.id !== payload.old.id));
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -69,10 +78,35 @@ export function ScheduleGrid({ isFritid = false }: Props) {
   }, []);
 
   const ws = weekStart ? new Date(weekStart + 'T12:00:00') : startOfWeek(new Date(), { weekStartsOn: 1 });
+
+  const allDays = [...new Set([
+    ...activities.map((a) => a.day_of_week),
+    ...fritidActivities.map((a) => a.day_of_week),
+  ])].sort();
+
   const dayActivities = activities
     .filter((a) => a.day_of_week === selectedDay)
     .sort((a, b) => a.time_start.localeCompare(b.time_start));
-  const availableDays = [...new Set(activities.map((a) => a.day_of_week))].sort();
+
+  const dayFritid = fritidActivities
+    .filter((a) => a.day_of_week === selectedDay)
+    .sort((a, b) => a.time_start.localeCompare(b.time_start));
+
+  const meals = getMeals(selectedDay);
+
+  // Insert meal cards into the activity list based on time
+  type ListItem =
+    | { kind: 'activity'; data: Activity }
+    | { kind: 'meal'; name: string; start: string; end: string };
+
+  const mainList: ListItem[] = [
+    ...dayActivities.map((a) => ({ kind: 'activity' as const, data: a })),
+    ...meals.map((m) => ({ kind: 'meal' as const, name: m.name, start: m.start, end: m.end })),
+  ].sort((a, b) => {
+    const ta = a.kind === 'activity' ? a.data.time_start : a.start + ':00';
+    const tb = b.kind === 'activity' ? b.data.time_start : b.start + ':00';
+    return ta.localeCompare(tb);
+  });
 
   if (!childName) {
     return (
@@ -89,16 +123,16 @@ export function ScheduleGrid({ isFritid = false }: Props) {
     <div>
       {/* Page header */}
       <div className="px-4 pt-4 pb-1">
-        <h2 className="text-xl font-bold text-gray-900">{isFritid ? 'Fritidsprogram' : 'Timeplan'}</h2>
+        <h2 className="text-xl font-bold text-gray-900">Timeplan</h2>
         {weekStart && (
           <p className="text-sm text-gray-500 mt-0.5">
-            {format(new Date(weekStart + 'T12:00:00'), "'Uke' w · MMMM yyyy", { locale: nb })}
+            {format(ws, "'Uke' w · MMMM yyyy", { locale: nb })}
           </p>
         )}
       </div>
 
-      {/* Name display + change */}
-      <div className="flex items-center justify-between px-4 pt-3 pb-0">
+      {/* Name + change */}
+      <div className="flex items-center justify-between px-4 pt-2 pb-0">
         <p className="text-sm text-gray-500">
           Barn: <span className="font-medium text-gray-700">{childName}</span>
         </p>
@@ -112,64 +146,90 @@ export function ScheduleGrid({ isFritid = false }: Props) {
 
       {/* Day tabs */}
       <div className="flex gap-2 overflow-x-auto pb-3 px-4 pt-3 scrollbar-hide">
-        {loading ? (
-          [...Array(5)].map((_, i) => (
-            <div key={i} className="flex-shrink-0 rounded-2xl px-4 py-2.5 min-w-[60px] bg-gray-100 animate-pulse h-14" />
-          ))
-        ) : availableDays.map((dayNum) => {
-          const date = addDays(ws, dayNum - 1);
-          const isToday = new Date().getDay() === (dayNum === 7 ? 0 : dayNum);
-          const sel = selectedDay === dayNum;
-          return (
-            <button
-              key={dayNum}
-              onClick={() => setSelectedDay(dayNum)}
-              className={`flex-shrink-0 flex flex-col items-center rounded-2xl px-4 py-2.5 min-w-[60px] transition-all active:scale-95 ${
-                sel
-                  ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-md shadow-blue-500/25'
-                  : isToday
-                  ? 'bg-white text-blue-700 ring-1 ring-blue-200'
-                  : 'bg-white text-gray-600 ring-1 ring-gray-100'
-              }`}
-            >
-              <span className={`text-[10px] font-semibold uppercase tracking-wider ${sel ? 'text-blue-100' : isToday ? 'text-blue-500' : 'text-gray-400'}`}>
-                {DAYS[dayNum - 1]}
-              </span>
-              <span className="text-lg font-bold tabular-nums leading-tight">
-                {format(date, 'd', { locale: nb })}
-              </span>
-            </button>
-          );
-        })}
+        {loading
+          ? [...Array(5)].map((_, i) => (
+              <div key={i} className="flex-shrink-0 rounded-2xl px-4 py-2.5 min-w-[60px] bg-gray-100 animate-pulse h-14" />
+            ))
+          : allDays.map((dayNum) => {
+              const date = addDays(ws, dayNum - 1);
+              const isToday = new Date().getDay() === (dayNum === 7 ? 0 : dayNum);
+              const sel = selectedDay === dayNum;
+              return (
+                <button
+                  key={dayNum}
+                  onClick={() => setSelectedDay(dayNum)}
+                  className={`flex-shrink-0 flex flex-col items-center rounded-2xl px-4 py-2.5 min-w-[60px] transition-all active:scale-95 ${
+                    sel
+                      ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-md shadow-blue-500/25'
+                      : isToday
+                      ? 'bg-white text-blue-700 ring-1 ring-blue-200'
+                      : 'bg-white text-gray-600 ring-1 ring-gray-100'
+                  }`}
+                >
+                  <span className={`text-[10px] font-semibold uppercase tracking-wider ${sel ? 'text-blue-100' : isToday ? 'text-blue-500' : 'text-gray-400'}`}>
+                    {DAYS[dayNum - 1]}
+                  </span>
+                  <span className="text-lg font-bold tabular-nums leading-tight">
+                    {format(date, 'd', { locale: nb })}
+                  </span>
+                </button>
+              );
+            })}
       </div>
 
-      {/* Activities */}
-      <div className="px-4 pt-3 flex flex-col gap-2.5">
-        {!loading && dayActivities.length === 0 ? (
-          <div className="text-center py-20">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-50 rounded-full mb-3">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-gray-300" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="4" width="18" height="18" rx="2"/>
-                <line x1="16" y1="2" x2="16" y2="6"/>
-                <line x1="8" y1="2" x2="8" y2="6"/>
-                <line x1="3" y1="10" x2="21" y2="10"/>
-              </svg>
-            </div>
-            <p className="text-gray-500 font-medium">Fri dag</p>
-            <p className="text-gray-400 text-sm mt-1">Ingen planlagte aktiviteter</p>
-          </div>
+      {/* Main activities + meals */}
+      <div className="px-4 pt-2 flex flex-col gap-2.5">
+        {!loading && mainList.length === 0 ? (
+          <EmptyDay />
         ) : (
-          dayActivities.map((activity) => (
-            <ActivityCard
-              key={activity.id}
-              activity={activity}
-              absences={absences}
-              childName={childName}
-              onClick={() => setSelected(activity)}
-            />
-          ))
+          mainList.map((item, i) =>
+            item.kind === 'meal' ? (
+              <MealCard key={`meal-${i}`} name={item.name} start={item.start} end={item.end} />
+            ) : (
+              <ActivityCard
+                key={item.data.id}
+                activity={item.data}
+                absences={absences}
+                childName={childName}
+                onClick={() => setSelected(item.data)}
+              />
+            )
+          )
         )}
       </div>
+
+      {/* Fritid separator + activities */}
+      {!loading && (
+        <div className="mt-6 mb-2">
+          {/* Big divider */}
+          <div className="relative mx-4 mb-4">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t-2 border-purple-100" />
+            </div>
+            <div className="relative flex justify-center">
+              <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-bold px-5 py-2 rounded-full uppercase tracking-widest shadow-md shadow-purple-500/25">
+                Fritidsprogram
+              </div>
+            </div>
+          </div>
+
+          <div className="px-4 flex flex-col gap-2.5">
+            {dayFritid.length === 0 ? (
+              <p className="text-center text-sm text-gray-400 py-6">Ingen fritidsaktiviteter denne dagen</p>
+            ) : (
+              dayFritid.map((activity) => (
+                <ActivityCard
+                  key={activity.id}
+                  activity={activity}
+                  absences={absences}
+                  childName={childName}
+                  onClick={() => setSelected(activity)}
+                />
+              ))
+            )}
+          </div>
+        </div>
+      )}
 
       {selected && (
         <AbsenceModal
@@ -180,6 +240,38 @@ export function ScheduleGrid({ isFritid = false }: Props) {
           onToggle={toggleAbsence}
         />
       )}
+    </div>
+  );
+}
+
+function MealCard({ name, start, end }: { name: string; start: string; end: string }) {
+  return (
+    <div className="flex items-center gap-3 rounded-3xl border border-orange-100 bg-orange-50/60 px-4 py-3">
+      <div className="flex flex-col items-center justify-center bg-orange-100 rounded-2xl px-3 py-2 min-w-[68px]">
+        <span className="text-base font-bold text-orange-800 tabular-nums leading-tight">{start}</span>
+        <span className="text-[10px] font-medium text-orange-400 tabular-nums">— {end}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <Utensils size={15} className="text-orange-400 flex-shrink-0" />
+        <p className="font-bold text-orange-800 text-base">{name}</p>
+      </div>
+    </div>
+  );
+}
+
+function EmptyDay() {
+  return (
+    <div className="text-center py-16">
+      <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-50 rounded-full mb-3">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-gray-300" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2"/>
+          <line x1="16" y1="2" x2="16" y2="6"/>
+          <line x1="8" y1="2" x2="8" y2="6"/>
+          <line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+      </div>
+      <p className="text-gray-500 font-medium">Fri dag</p>
+      <p className="text-gray-400 text-sm mt-1">Ingen planlagte aktiviteter</p>
     </div>
   );
 }

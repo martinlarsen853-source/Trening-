@@ -11,26 +11,22 @@ export async function GET() {
   const weekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
   const weekEnd = format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
 
-  const [{ data: activities, error: e1 }, { data: absences, error: e2 }] = await Promise.all([
+  const [{ data: activities }, { data: fritidActivities }, { data: absences }] = await Promise.all([
     supabase
-      .from('activities')
-      .select('*')
-      .eq('is_fritid', false)
-      .gte('week_start', weekStart)
-      .lte('week_start', weekEnd)
-      .order('day_of_week')
-      .order('time_start'),
+      .from('activities').select('*').eq('is_fritid', false)
+      .gte('week_start', weekStart).lte('week_start', weekEnd)
+      .order('day_of_week').order('time_start'),
     supabase
-      .from('absences')
-      .select('*')
-      .gte('registered_at', weekStart),
+      .from('activities').select('*').eq('is_fritid', true)
+      .gte('week_start', weekStart).lte('week_start', weekEnd)
+      .order('day_of_week').order('time_start'),
+    supabase
+      .from('absences').select('*').gte('registered_at', weekStart),
   ]);
-
-  if (e1) console.error('activities error:', e1.message);
-  if (e2) console.error('absences error:', e2.message);
 
   return NextResponse.json({
     activities: activities ?? [],
+    fritidActivities: fritidActivities ?? [],
     absences: absences ?? [],
     weekStart,
   });

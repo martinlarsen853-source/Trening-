@@ -1,9 +1,5 @@
-import { ScheduleGrid } from '@/components/ScheduleGrid';
+import { redirect } from 'next/navigation';
 
 export default function FritidPage() {
-  return (
-    <div className="max-w-lg mx-auto">
-      <ScheduleGrid isFritid />
-    </div>
-  );
+  redirect('/');
 }

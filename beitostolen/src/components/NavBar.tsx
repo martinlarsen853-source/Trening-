@@ -4,7 +4,6 @@ import { usePathname } from 'next/navigation';
 
 const links = [
   { href: '/', label: 'Timeplan' },
-  { href: '/fritid', label: 'Fritid' },
   { href: '/mat', label: 'Mat' },
   { href: '/fellesrom', label: 'Fellesrom' },
   { href: 'https://ombudsmann-6u0j9kup8-martins-projects-f84ff334.vercel.app', label: 'Ombudsmann', external: true },

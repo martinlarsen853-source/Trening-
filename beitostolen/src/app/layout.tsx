@@ -65,7 +65,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </div>
 
         {/* Offset for fixed header: hero ~106px + nav ~48px = ~154px */}
-        <main className="pt-[160px] pb-8 min-h-screen">
+        <main className="pt-[172px] pb-8 min-h-screen">
           {children}
         </main>
       </body>

@@ -23,35 +23,45 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ServiceWorkerRegistrar />
         <PushSubscriber />
 
-        {/* Hero header */}
-        <header className="relative overflow-hidden" style={{background: 'linear-gradient(160deg, #0a1f4e 0%, #0e3a8c 45%, #1a6fc4 80%, #38a0e8 100%)'}}>
-          {/* Snow dots */}
-          <div className="absolute inset-0 opacity-20" style={{backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '40px 40px'}} />
+        {/* Fixed top: hero + nav */}
+        <div className="fixed top-0 left-0 right-0 z-50">
+          {/* Hero */}
+          <header
+            className="relative overflow-hidden"
+            style={{ background: 'linear-gradient(150deg, #071630 0%, #0d3070 40%, #1458a8 72%, #2e86d4 100%)' }}
+          >
+            {/* Subtle grid overlay */}
+            <div
+              className="absolute inset-0 opacity-[0.06]"
+              style={{ backgroundImage: 'linear-gradient(0deg, transparent 24%, rgba(255,255,255,.3) 25%, rgba(255,255,255,.3) 26%, transparent 27%, transparent 74%, rgba(255,255,255,.3) 75%, rgba(255,255,255,.3) 76%, transparent 77%), linear-gradient(90deg, transparent 24%, rgba(255,255,255,.3) 25%, rgba(255,255,255,.3) 26%, transparent 27%, transparent 74%, rgba(255,255,255,.3) 75%, rgba(255,255,255,.3) 76%, transparent 77%)', backgroundSize: '60px 60px' }}
+            />
 
-          {/* Mountain silhouette */}
-          <svg className="absolute bottom-0 left-0 right-0 w-full" viewBox="0 0 1440 90" preserveAspectRatio="none" aria-hidden="true">
-            <path d="M0,90 L0,60 L80,30 L160,55 L260,15 L360,45 L460,20 L560,50 L660,10 L760,40 L860,18 L960,45 L1060,22 L1160,48 L1280,20 L1360,42 L1440,25 L1440,90 Z" fill="white" fillOpacity="0.07"/>
-            <path d="M0,90 L0,72 L120,48 L240,65 L380,38 L500,58 L620,35 L740,55 L880,32 L1000,52 L1120,38 L1240,55 L1360,40 L1440,52 L1440,90 Z" fill="white" fillOpacity="0.09"/>
-            <path d="M0,90 L0,80 L180,62 L360,75 L540,55 L720,70 L900,52 L1080,68 L1260,58 L1440,65 L1440,90 Z" fill="white" fillOpacity="0.12"/>
-          </svg>
+            {/* Glow orb */}
+            <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full opacity-20" style={{ background: 'radial-gradient(circle, #60a5fa, transparent 70%)' }} />
 
-          {/* Text content */}
-          <div className="relative z-10 px-5 pt-7 pb-10">
-            <p className="text-[11px] font-bold tracking-[0.22em] text-blue-200 uppercase mb-1.5">
-              Beitostølen Helsesportsenter
-            </p>
-            <div className="flex items-end gap-3">
-              <h1 className="text-[2.75rem] font-black text-white leading-none tracking-tight">
+            {/* Mountain silhouette */}
+            <svg className="absolute bottom-0 left-0 right-0 w-full" viewBox="0 0 1440 70" preserveAspectRatio="none" aria-hidden="true">
+              <path d="M0,70 L0,45 L90,18 L180,38 L290,8 L400,32 L500,12 L600,36 L700,6 L800,28 L900,10 L1000,34 L1100,14 L1200,38 L1320,12 L1440,28 L1440,70 Z" fill="white" fillOpacity="0.06"/>
+              <path d="M0,70 L0,55 L160,35 L320,52 L480,28 L640,48 L800,24 L960,44 L1120,30 L1280,46 L1440,34 L1440,70 Z" fill="white" fillOpacity="0.08"/>
+              <path d="M0,70 L0,63 L240,48 L480,60 L720,44 L960,58 L1200,46 L1440,56 L1440,70 Z" fill="white" fillOpacity="0.12"/>
+            </svg>
+
+            {/* Text */}
+            <div className="relative z-10 px-5 pt-5 pb-8">
+              <p className="text-[10px] font-bold tracking-[0.28em] text-blue-300 uppercase mb-1">
+                Beitostølen Helsesportsenter
+              </p>
+              <h1 className="text-[2.4rem] font-black text-white leading-none tracking-tight drop-shadow-sm">
                 Gruppe 2C
               </h1>
-              <span className="mb-1 text-lg font-semibold text-blue-300 leading-none">2025/26</span>
             </div>
-          </div>
-        </header>
+          </header>
 
-        <NavBar />
+          <NavBar />
+        </div>
 
-        <main className="pb-8 min-h-screen">
+        {/* Offset for fixed header: hero ~88px + nav ~48px */}
+        <main className="pt-[136px] pb-8 min-h-screen">
           {children}
         </main>
       </body>

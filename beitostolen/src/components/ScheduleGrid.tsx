@@ -10,15 +10,14 @@ import { nb } from 'date-fns/locale';
 
 const DAYS = ['Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør'];
 
-type Props = {
-  activities: Activity[];
-  initialAbsences: Absence[];
-  isFritid?: boolean;
-};
+type Props = { isFritid?: boolean };
 
-export function ScheduleGrid({ activities, initialAbsences, isFritid = false }: Props) {
+export function ScheduleGrid({ isFritid = false }: Props) {
   const [childName, setChildName] = useState<string | null>(null);
-  const [absences, setAbsences] = useState<Absence[]>(initialAbsences);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [absences, setAbsences] = useState<Absence[]>([]);
+  const [weekStart, setWeekStart] = useState('');
+  const [loading, setLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState<number>(() => {
     const day = new Date().getDay();
     return day === 0 ? 6 : day;
@@ -31,6 +30,19 @@ export function ScheduleGrid({ activities, initialAbsences, isFritid = false }: 
   }, []);
 
   useEffect(() => {
+    const endpoint = isFritid ? '/api/fritid' : '/api/activities';
+    fetch(endpoint)
+      .then((r) => r.json())
+      .then((d) => {
+        setActivities(d.activities ?? []);
+        setAbsences(d.absences ?? []);
+        setWeekStart(d.weekStart ?? '');
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [isFritid]);
+
+  useEffect(() => {
     const channel = supabase
       .channel('absences-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'absences' }, (payload) => {
@@ -41,7 +53,6 @@ export function ScheduleGrid({ activities, initialAbsences, isFritid = false }: 
         }
       })
       .subscribe();
-
     return () => { supabase.removeChannel(channel); };
   }, []);
 
@@ -57,11 +68,10 @@ export function ScheduleGrid({ activities, initialAbsences, isFritid = false }: 
     }
   }, []);
 
-  const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+  const ws = weekStart ? new Date(weekStart + 'T12:00:00') : startOfWeek(new Date(), { weekStartsOn: 1 });
   const dayActivities = activities
     .filter((a) => a.day_of_week === selectedDay)
     .sort((a, b) => a.time_start.localeCompare(b.time_start));
-
   const availableDays = [...new Set(activities.map((a) => a.day_of_week))].sort();
 
   if (!childName) {
@@ -77,6 +87,16 @@ export function ScheduleGrid({ activities, initialAbsences, isFritid = false }: 
 
   return (
     <div>
+      {/* Page header */}
+      <div className="px-4 pt-4 pb-1">
+        <h2 className="text-xl font-bold text-gray-900">{isFritid ? 'Fritidsprogram' : 'Timeplan'}</h2>
+        {weekStart && (
+          <p className="text-sm text-gray-500 mt-0.5">
+            {format(new Date(weekStart + 'T12:00:00'), "'Uke' w · MMMM yyyy", { locale: nb })}
+          </p>
+        )}
+      </div>
+
       {/* Name display + change */}
       <div className="flex items-center justify-between px-4 pt-3 pb-0">
         <p className="text-sm text-gray-500">
@@ -92,23 +112,27 @@ export function ScheduleGrid({ activities, initialAbsences, isFritid = false }: 
 
       {/* Day tabs */}
       <div className="flex gap-2 overflow-x-auto pb-3 px-4 pt-3 scrollbar-hide">
-        {availableDays.map((dayNum) => {
-          const date = addDays(weekStart, dayNum - 1);
+        {loading ? (
+          [...Array(5)].map((_, i) => (
+            <div key={i} className="flex-shrink-0 rounded-2xl px-4 py-2.5 min-w-[60px] bg-gray-100 animate-pulse h-14" />
+          ))
+        ) : availableDays.map((dayNum) => {
+          const date = addDays(ws, dayNum - 1);
           const isToday = new Date().getDay() === (dayNum === 7 ? 0 : dayNum);
-          const selected = selectedDay === dayNum;
+          const sel = selectedDay === dayNum;
           return (
             <button
               key={dayNum}
               onClick={() => setSelectedDay(dayNum)}
               className={`flex-shrink-0 flex flex-col items-center rounded-2xl px-4 py-2.5 min-w-[60px] transition-all active:scale-95 ${
-                selected
+                sel
                   ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-md shadow-blue-500/25'
                   : isToday
                   ? 'bg-white text-blue-700 ring-1 ring-blue-200'
                   : 'bg-white text-gray-600 ring-1 ring-gray-100'
               }`}
             >
-              <span className={`text-[10px] font-semibold uppercase tracking-wider ${selected ? 'text-blue-100' : isToday ? 'text-blue-500' : 'text-gray-400'}`}>
+              <span className={`text-[10px] font-semibold uppercase tracking-wider ${sel ? 'text-blue-100' : isToday ? 'text-blue-500' : 'text-gray-400'}`}>
                 {DAYS[dayNum - 1]}
               </span>
               <span className="text-lg font-bold tabular-nums leading-tight">
@@ -121,7 +145,7 @@ export function ScheduleGrid({ activities, initialAbsences, isFritid = false }: 
 
       {/* Activities */}
       <div className="px-4 pt-3 flex flex-col gap-2.5">
-        {dayActivities.length === 0 ? (
+        {!loading && dayActivities.length === 0 ? (
           <div className="text-center py-20">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-50 rounded-full mb-3">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-gray-300" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

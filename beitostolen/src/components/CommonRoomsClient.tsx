@@ -76,6 +76,17 @@ export function CommonRoomsClient({ rooms }: Props) {
 
   return (
     <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-gray-500">
+          Innlogget som: <span className="font-medium text-gray-700">{parentName}</span>
+        </p>
+        <button
+          onClick={() => { localStorage.removeItem('parentName'); setParentName(null); }}
+          className="text-xs text-blue-600 font-medium py-1"
+        >
+          Bytt navn
+        </button>
+      </div>
       {rooms.map((room) => (
         <CommonRoomCard
           key={room}

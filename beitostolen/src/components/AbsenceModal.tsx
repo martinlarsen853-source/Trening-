@@ -52,6 +52,17 @@ export function AbsenceModal({ activity, absences, childName, onClose, onToggle 
           </button>
         </div>
 
+        {activity.notes && (
+          <div className="mb-4 bg-blue-50 rounded-2xl p-3.5">
+            <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-2">Detaljer</p>
+            <div className="flex flex-col gap-1">
+              {activity.notes.split(' · ').map((line, i) => (
+                <p key={i} className="text-sm text-gray-700 leading-snug">{line}</p>
+              ))}
+            </div>
+          </div>
+        )}
+
         {otherAbsences.length > 0 && (
           <div className="mb-4">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Melder ikke</p>

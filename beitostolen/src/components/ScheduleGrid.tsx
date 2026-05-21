@@ -77,8 +77,21 @@ export function ScheduleGrid({ activities, initialAbsences, isFritid = false }: 
 
   return (
     <div>
+      {/* Name display + change */}
+      <div className="flex items-center justify-between px-4 pt-3 pb-0">
+        <p className="text-sm text-gray-500">
+          Barn: <span className="font-medium text-gray-700">{childName}</span>
+        </p>
+        <button
+          onClick={() => { localStorage.removeItem('childName'); setChildName(null); }}
+          className="text-xs text-blue-600 font-medium py-1"
+        >
+          Bytt navn
+        </button>
+      </div>
+
       {/* Day tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-3 px-4 pt-4 scrollbar-hide">
+      <div className="flex gap-2 overflow-x-auto pb-3 px-4 pt-3 scrollbar-hide">
         {availableDays.map((dayNum) => {
           const date = addDays(weekStart, dayNum - 1);
           const isToday = new Date().getDay() === (dayNum === 7 ? 0 : dayNum);

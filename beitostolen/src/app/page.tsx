@@ -41,8 +41,8 @@ export default async function SchedulePage() {
 
   return (
     <div className="max-w-lg mx-auto">
-      <div className="px-4 pt-5 pb-2">
-        <h1 className="text-2xl font-bold text-gray-900">Timeplan</h1>
+      <div className="px-4 pt-4 pb-2">
+        <h2 className="text-xl font-bold text-gray-900">Timeplan</h2>
         <p className="text-sm text-gray-500 mt-0.5">{weekLabel}</p>
       </div>
       <ScheduleGrid activities={activities} initialAbsences={absences} />

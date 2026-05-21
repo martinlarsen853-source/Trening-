@@ -92,7 +92,7 @@ export default function MatPage() {
 
   return (
     <div className="max-w-lg mx-auto px-4 pt-5 pb-10">
-      <h1 className="text-2xl font-bold text-gray-900">Mat</h1>
+      <h2 className="text-xl font-bold text-gray-900">Mat</h2>
       <p className="text-sm text-gray-500 mt-0.5 mb-6">{weekLabel}</p>
 
       {/* Fixed meal times */}

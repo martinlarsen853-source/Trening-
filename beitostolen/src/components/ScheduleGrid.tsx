@@ -78,34 +78,48 @@ export function ScheduleGrid({ activities, initialAbsences, isFritid = false }: 
   return (
     <div>
       {/* Day tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-2 px-4 pt-4 scrollbar-hide">
+      <div className="flex gap-2 overflow-x-auto pb-3 px-4 pt-4 scrollbar-hide">
         {availableDays.map((dayNum) => {
           const date = addDays(weekStart, dayNum - 1);
           const isToday = new Date().getDay() === (dayNum === 7 ? 0 : dayNum);
+          const selected = selectedDay === dayNum;
           return (
             <button
               key={dayNum}
               onClick={() => setSelectedDay(dayNum)}
-              className={`flex-shrink-0 flex flex-col items-center rounded-xl px-4 py-2 transition-colors ${
-                selectedDay === dayNum
-                  ? 'bg-blue-600 text-white'
+              className={`flex-shrink-0 flex flex-col items-center rounded-2xl px-4 py-2.5 min-w-[60px] transition-all active:scale-95 ${
+                selected
+                  ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-md shadow-blue-500/25'
                   : isToday
-                  ? 'bg-blue-50 text-blue-700 border-2 border-blue-200'
-                  : 'bg-white text-gray-600 border border-gray-200'
+                  ? 'bg-white text-blue-700 ring-1 ring-blue-200'
+                  : 'bg-white text-gray-600 ring-1 ring-gray-100'
               }`}
             >
-              <span className="text-xs font-medium">{DAYS[dayNum - 1]}</span>
-              <span className="text-sm font-bold">{format(date, 'd', { locale: nb })}</span>
+              <span className={`text-[10px] font-semibold uppercase tracking-wider ${selected ? 'text-blue-100' : isToday ? 'text-blue-500' : 'text-gray-400'}`}>
+                {DAYS[dayNum - 1]}
+              </span>
+              <span className="text-lg font-bold tabular-nums leading-tight">
+                {format(date, 'd', { locale: nb })}
+              </span>
             </button>
           );
         })}
       </div>
 
       {/* Activities */}
-      <div className="px-4 pt-4 flex flex-col gap-3">
+      <div className="px-4 pt-3 flex flex-col gap-2.5">
         {dayActivities.length === 0 ? (
-          <div className="text-center text-gray-400 py-16">
-            <p className="text-lg">Ingen aktiviteter denne dagen</p>
+          <div className="text-center py-20">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-50 rounded-full mb-3">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-gray-300" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+            </div>
+            <p className="text-gray-500 font-medium">Fri dag</p>
+            <p className="text-gray-400 text-sm mt-1">Ingen planlagte aktiviteter</p>
           </div>
         ) : (
           dayActivities.map((activity) => (

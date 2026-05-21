@@ -2,15 +2,12 @@ import { createClient } from '@supabase/supabase-js';
 import { ScheduleGrid } from '@/components/ScheduleGrid';
 import { startOfWeek, endOfWeek, format } from 'date-fns';
 import { nb } from 'date-fns/locale';
-import type { Activity, Absence } from '@/lib/supabase';
+import { SUPABASE_URL, SUPABASE_ANON_KEY, type Activity, type Absence } from '@/lib/supabase';
 
 export const revalidate = 0;
 
 async function getData() {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   const weekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
   const weekEnd = format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { VAPID_PUBLIC_KEY } from '@/lib/supabase';
 
 export function PushSubscriber() {
   useEffect(() => {
@@ -14,7 +15,7 @@ export function PushSubscriber() {
       const existing = await reg.pushManager.getSubscription();
       const sub = existing ?? await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+        applicationServerKey: VAPID_PUBLIC_KEY,
       });
 
       const name =

@@ -1,7 +1,7 @@
 'use client';
 
 import type { Activity, Absence } from '@/lib/supabase';
-import { AlertCircle } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 
 type Props = {
   activity: Activity;
@@ -17,34 +17,39 @@ export function ActivityCard({ activity, absences, childName, onClick }: Props) 
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left rounded-2xl border-2 p-4 transition-all active:scale-[0.98] ${
+      className={`w-full text-left rounded-3xl border p-5 transition-all active:scale-[0.99] ${
         myAbsence
-          ? 'border-red-300 bg-red-50'
-          : 'border-gray-200 bg-white hover:border-blue-300 hover:shadow-sm'
+          ? 'border-red-200 bg-red-50/60'
+          : 'border-gray-100 bg-white hover:border-gray-200 hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] shadow-[0_2px_8px_rgba(0,0,0,0.03)]'
       }`}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
-              {activity.time_start.slice(0, 5)} – {activity.time_end.slice(0, 5)}
-            </span>
-            {activity.notes && (
-              <span className="text-xs text-gray-400">{activity.notes}</span>
-            )}
-          </div>
-          <p className="font-bold text-gray-900 text-base leading-tight">{activity.name}</p>
+      <div className="flex items-start gap-3">
+        <div className="flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl px-3 py-2 min-w-[68px]">
+          <span className="text-base font-bold text-blue-900 tabular-nums leading-tight">
+            {activity.time_start.slice(0, 5)}
+          </span>
+          <span className="text-[10px] font-medium text-blue-500 tabular-nums tracking-wide">
+            — {activity.time_end.slice(0, 5)}
+          </span>
+        </div>
+
+        <div className="flex-1 min-w-0 pt-0.5">
+          <p className="font-bold text-gray-900 text-base leading-tight tracking-tight">
+            {activity.name}
+          </p>
           {activity.location && (
             <p className="text-sm text-gray-500 mt-0.5">{activity.location}</p>
           )}
+          {activity.notes && (
+            <p className="text-xs text-gray-400 mt-0.5 italic">{activity.notes}</p>
+          )}
         </div>
-        {myAbsence && (
-          <AlertCircle size={20} className="text-red-400 flex-shrink-0 mt-1" />
-        )}
+
+        <ChevronRight size={18} className="text-gray-300 flex-shrink-0 mt-1" />
       </div>
 
       {relevant.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mt-3">
+        <div className="flex flex-wrap gap-1.5 mt-3 pl-[80px]">
           {relevant.map((a) => (
             <span
               key={a.id}

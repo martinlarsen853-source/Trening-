@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase';
 
 export async function POST(req: NextRequest) {
   const { name, subscription } = await req.json();
@@ -7,10 +8,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Mangler felt' }, { status: 400 });
   }
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   // Upsert: replace existing subscription for this endpoint
   await supabase

@@ -16,6 +16,13 @@ type Meal = {
 const DAYS_NO = ['Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag'];
 const DAYS_SHORT = ['Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør'];
 
+const MEAL_TIMES = [
+  { name: 'Frokost',   weekday: '08:00–09:00', weekend: '08:00–09:30' },
+  { name: 'Lunsj',     weekday: '11:45–13:00', weekend: '12:00–14:00' },
+  { name: 'Middag',    weekday: '15:30–17:00', weekend: '12:00–14:00' },
+  { name: 'Kveldsmat', weekday: '18:00–22:00', weekend: '15:30–22:00', note: 'Selvbetjening i spisesalen' },
+];
+
 export default function MatPage() {
   const [meals, setMeals] = useState<Meal[]>([]);
   const [unlocked, setUnlocked] = useState(false);
@@ -88,6 +95,27 @@ export default function MatPage() {
       <h1 className="text-2xl font-bold text-gray-900">Mat</h1>
       <p className="text-sm text-gray-500 mt-0.5 mb-6">{weekLabel}</p>
 
+      {/* Fixed meal times */}
+      <div className="bg-white rounded-3xl border border-gray-100 p-5 shadow-[0_2px_8px_rgba(0,0,0,0.03)] mb-6">
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Faste spisetider</p>
+        <div className="grid grid-cols-3 gap-x-3 gap-y-2.5">
+          <div />
+          <p className="text-xs font-semibold text-gray-500 text-center">Man–fre</p>
+          <p className="text-xs font-semibold text-gray-500 text-center">Lør–søn</p>
+          {MEAL_TIMES.map((m) => (
+            <>
+              <div key={m.name + '-label'}>
+                <p className="text-sm font-semibold text-gray-800">{m.name}</p>
+                {m.note && <p className="text-[10px] text-gray-400 leading-tight">{m.note}</p>}
+              </div>
+              <p key={m.name + '-wday'} className="text-sm text-gray-600 tabular-nums text-center">{m.weekday}</p>
+              <p key={m.name + '-wend'} className="text-sm text-gray-600 tabular-nums text-center">{m.weekend}</p>
+            </>
+          ))}
+        </div>
+      </div>
+
+      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Middagsmeny denne uken</p>
       <div className="flex flex-col gap-3">
         {weekDays.map((day, i) => {
           const dateStr = format(day, 'yyyy-MM-dd');

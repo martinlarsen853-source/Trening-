@@ -4,7 +4,7 @@ import { startOfWeek, endOfWeek, format } from 'date-fns';
 import { nb } from 'date-fns/locale';
 import { SUPABASE_URL, SUPABASE_ANON_KEY, type Activity, type Absence } from '@/lib/supabase';
 
-export const revalidate = 0;
+export const dynamic = 'force-dynamic';
 
 async function getData() {
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);

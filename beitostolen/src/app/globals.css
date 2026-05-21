@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #f8f9fa;
+  --fg: #1a1a2e;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+* {
+  box-sizing: border-box;
+}

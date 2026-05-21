@@ -7,7 +7,7 @@ import { AbsenceModal } from './AbsenceModal';
 import { NameSetup } from './NameSetup';
 import { format, addDays, startOfWeek } from 'date-fns';
 import { nb } from 'date-fns/locale';
-import { Utensils } from 'lucide-react';
+import { Utensils, MessageCircle } from 'lucide-react';
 
 const DAYS = ['Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør'];
 
@@ -30,6 +30,7 @@ export function ScheduleGrid() {
   const [absences, setAbsences] = useState<Absence[]>([]);
   const [weekStart, setWeekStart] = useState('');
   const [loading, setLoading] = useState(true);
+  const [meetings, setMeetings] = useState<{ child: string; date: string; time: string; counselor: string }[]>([]);
   const [selectedDay, setSelectedDay] = useState<number>(() => {
     const day = new Date().getDay();
     return day === 0 ? 6 : day;
@@ -39,6 +40,12 @@ export function ScheduleGrid() {
   useEffect(() => {
     const stored = localStorage.getItem('childName');
     if (stored) setChildName(stored);
+  }, []);
+
+  useEffect(() => {
+    fetch('/api/meetings')
+      .then((r) => r.json())
+      .then((d) => setMeetings(d.meetings ?? []));
   }, []);
 
   useEffect(() => {
@@ -78,6 +85,10 @@ export function ScheduleGrid() {
   }, []);
 
   const ws = weekStart ? new Date(weekStart + 'T12:00:00') : startOfWeek(new Date(), { weekStartsOn: 1 });
+  const selectedDate = format(addDays(ws, selectedDay - 1), 'yyyy-MM-dd');
+  const myMeeting = childName
+    ? meetings.find((m) => m.child.toLowerCase() === childName.toLowerCase() && m.date === selectedDate)
+    : null;
 
   const allDays = [...new Set([
     ...activities.map((a) => a.day_of_week),
@@ -97,14 +108,16 @@ export function ScheduleGrid() {
   // Insert meal cards into the activity list based on time
   type ListItem =
     | { kind: 'activity'; data: Activity }
-    | { kind: 'meal'; name: string; start: string; end: string };
+    | { kind: 'meal'; name: string; start: string; end: string }
+    | { kind: 'meeting'; time: string; counselor: string };
 
   const mainList: ListItem[] = [
     ...dayActivities.map((a) => ({ kind: 'activity' as const, data: a })),
     ...meals.map((m) => ({ kind: 'meal' as const, name: m.name, start: m.start, end: m.end })),
+    ...(myMeeting ? [{ kind: 'meeting' as const, time: myMeeting.time, counselor: myMeeting.counselor }] : []),
   ].sort((a, b) => {
-    const ta = a.kind === 'activity' ? a.data.time_start : a.start + ':00';
-    const tb = b.kind === 'activity' ? b.data.time_start : b.start + ':00';
+    const ta = a.kind === 'activity' ? a.data.time_start : (a.kind === 'meeting' ? a.time + ':00' : a.start + ':00');
+    const tb = b.kind === 'activity' ? b.data.time_start : (b.kind === 'meeting' ? b.time + ':00' : b.start + ':00');
     return ta.localeCompare(tb);
   });
 
@@ -185,6 +198,8 @@ export function ScheduleGrid() {
           mainList.map((item, i) =>
             item.kind === 'meal' ? (
               <MealCard key={`meal-${i}`} name={item.name} start={item.start} end={item.end} />
+            ) : item.kind === 'meeting' ? (
+              <MeetingCard key="meeting" time={item.time} counselor={item.counselor} childName={childName!} />
             ) : (
               <ActivityCard
                 key={item.data.id}
@@ -254,6 +269,25 @@ function MealCard({ name, start, end }: { name: string; start: string; end: stri
       <div className="flex items-center gap-2">
         <Utensils size={15} className="text-orange-400 flex-shrink-0" />
         <p className="font-bold text-orange-800 text-base">{name}</p>
+      </div>
+    </div>
+  );
+}
+
+function MeetingCard({ time, counselor, childName }: { time: string; counselor: string; childName: string }) {
+  return (
+    <div className="flex items-center gap-3 rounded-3xl border border-green-200 bg-green-50/70 px-4 py-3">
+      <div className="flex flex-col items-center justify-center bg-green-100 rounded-2xl px-3 py-2 min-w-[68px]">
+        <span className="text-base font-bold text-green-800 tabular-nums leading-tight">{time}</span>
+        <span className="text-[10px] font-medium text-green-500">Samtale</span>
+      </div>
+      <div className="flex items-start gap-2 flex-1">
+        <MessageCircle size={15} className="text-green-500 flex-shrink-0 mt-0.5" />
+        <div>
+          <p className="font-bold text-green-800 text-base leading-tight">Oppfølgingssamtale</p>
+          <p className="text-sm text-green-700 mt-0.5">{childName} · med {counselor}</p>
+          <p className="text-xs text-green-600 mt-0.5">AKV-bygget, legesekretærkontoret</p>
+        </div>
       </div>
     </div>
   );

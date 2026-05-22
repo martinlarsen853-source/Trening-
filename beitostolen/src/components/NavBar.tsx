@@ -4,7 +4,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
 const links = [
-  { href: '/', label: 'Timeplan' },
+  { href: '/', label: 'Status' },
+  { href: '/timeplan', label: 'Timeplan' },
   { href: '/mat', label: 'Mat' },
   { href: '/fellesrom', label: 'Fellesrom' },
   { href: '/chat', label: 'Chat' },

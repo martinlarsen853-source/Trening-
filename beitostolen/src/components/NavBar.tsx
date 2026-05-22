@@ -1,6 +1,7 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 
 const links = [
   { href: '/', label: 'Timeplan' },
@@ -11,6 +12,12 @@ const links = [
 
 export function NavBar() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+    router.replace('/login');
+  }
 
   return (
     <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-sm">
@@ -32,6 +39,12 @@ export function NavBar() {
             </a>
           );
         })}
+        <button
+          onClick={handleSignOut}
+          className="flex-shrink-0 ml-auto px-4 py-3.5 text-sm font-semibold text-gray-400 hover:text-red-500 transition-colors border-b-2 border-transparent whitespace-nowrap"
+        >
+          Logg ut
+        </button>
       </div>
     </nav>
   );

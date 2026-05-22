@@ -4,6 +4,7 @@ import { ServiceWorkerRegistrar } from '@/components/ServiceWorkerRegistrar';
 import { PushSubscriber } from '@/components/PushSubscriber';
 import { NavBar } from '@/components/NavBar';
 import { WeatherWidget } from '@/components/WeatherWidget';
+import { AuthGuard } from '@/components/AuthGuard';
 
 export const metadata: Metadata = {
   title: 'Beitostølen 2C',
@@ -66,7 +67,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         {/* Offset for fixed header: hero ~106px + nav ~48px = ~154px */}
         <main className="pt-[172px] pb-8 min-h-screen">
-          {children}
+          <AuthGuard>{children}</AuthGuard>
         </main>
       </body>
     </html>

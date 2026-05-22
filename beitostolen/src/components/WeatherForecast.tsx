@@ -34,8 +34,10 @@ async function ForecastData() {
             const temp = Math.round(entry.data.instant.details.air_temperature);
             const symbol: string = entry.data.next_1_hours?.summary?.symbol_code ?? '';
             const emoji = symbolToEmoji(symbol);
-            const date = new Date(entry.time);
-            const time = date.toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Oslo' });
+            // Convert UTC → CEST (UTC+2, Norway summer time)
+            const localMs = new Date(entry.time).getTime() + 2 * 60 * 60 * 1000;
+            const d = new Date(localMs);
+            const time = `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
 
             return (
               <div

@@ -12,8 +12,13 @@ export function CommonRoomsClient({ rooms }: Props) {
   const [checkins, setCheckins] = useState<RoomCheckin[]>([]);
 
   useEffect(() => {
-    const stored = localStorage.getItem('parentName');
-    if (stored) setParentName(stored);
+    // Read parent name from Supabase Auth user metadata (v2-auth)
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      const name = user?.user_metadata?.parent_name as string | undefined;
+      if (name) { setParentName(name); return; }
+      const stored = localStorage.getItem('parentName');
+      if (stored) setParentName(stored);
+    });
   }, []);
 
   useEffect(() => {

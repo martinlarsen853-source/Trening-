@@ -4,8 +4,11 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
+const inputCls = "w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100";
+
 export default function SignupPage() {
-  const [name, setName] = useState('');
+  const [childName, setChildName] = useState('');
+  const [parentName, setParentName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -20,7 +23,12 @@ export default function SignupPage() {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: name } },
+      options: {
+        data: {
+          full_name: childName,    // used in ScheduleGrid (barnets navn)
+          parent_name: parentName, // used in Fellesrom (ditt navn)
+        },
+      },
     });
     if (error) {
       setError(error.message);
@@ -44,36 +52,17 @@ export default function SignupPage() {
         <h2 className="text-xl font-bold text-gray-900 mb-5">Opprett konto</h2>
 
         <form onSubmit={handleSignup} className="flex flex-col gap-3">
-          <input
-            type="text"
-            placeholder="Barnets navn"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-          />
-          <input
-            type="email"
-            placeholder="E-post"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-          />
-          <input
-            type="password"
-            placeholder="Passord (min. 6 tegn)"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-          />
+          <input type="text" placeholder="Barnets navn" value={childName}
+            onChange={(e) => setChildName(e.target.value)} required className={inputCls} />
+          <input type="text" placeholder="Ditt navn (ledsager)" value={parentName}
+            onChange={(e) => setParentName(e.target.value)} required className={inputCls} />
+          <input type="email" placeholder="E-post" value={email}
+            onChange={(e) => setEmail(e.target.value)} required className={inputCls} />
+          <input type="password" placeholder="Passord (min. 6 tegn)" value={password}
+            onChange={(e) => setPassword(e.target.value)} required className={inputCls} />
           {error && <p className="text-red-500 text-sm">{error}</p>}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-2xl bg-blue-600 text-white font-bold py-3 text-sm mt-1 disabled:opacity-60 active:scale-95 transition-all"
-          >
+          <button type="submit" disabled={loading}
+            className="w-full rounded-2xl bg-blue-600 text-white font-bold py-3 text-sm mt-1 disabled:opacity-60 active:scale-95 transition-all">
             {loading ? 'Oppretter konto…' : 'Opprett konto'}
           </button>
         </form>

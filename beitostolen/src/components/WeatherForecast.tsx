@@ -34,7 +34,8 @@ async function ForecastData() {
             const temp = Math.round(entry.data.instant.details.air_temperature);
             const symbol: string = entry.data.next_1_hours?.summary?.symbol_code ?? '';
             const emoji = symbolToEmoji(symbol);
-            const time: string = entry.time.slice(11, 16);
+            const date = new Date(entry.time);
+            const time = date.toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Oslo' });
 
             return (
               <div

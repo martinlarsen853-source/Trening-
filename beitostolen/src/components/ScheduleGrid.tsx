@@ -111,8 +111,12 @@ export function ScheduleGrid() {
     | { kind: 'meal'; name: string; start: string; end: string }
     | { kind: 'meeting'; time: string; counselor: string };
 
+  const isWeekend = selectedDay >= 6;
+
   const mainList: ListItem[] = [
     ...dayActivities.map((a) => ({ kind: 'activity' as const, data: a })),
+    // On weekends there's no programme/leisure split — merge everything chronologically
+    ...(isWeekend ? dayFritid.map((a) => ({ kind: 'activity' as const, data: a })) : []),
     ...meals.map((m) => ({ kind: 'meal' as const, name: m.name, start: m.start, end: m.end })),
     ...(myMeeting ? [{ kind: 'meeting' as const, time: myMeeting.time, counselor: myMeeting.counselor }] : []),
   ].sort((a, b) => {
@@ -213,8 +217,8 @@ export function ScheduleGrid() {
         )}
       </div>
 
-      {/* Fritid separator + activities */}
-      {!loading && (
+      {/* Fritid separator + activities — hidden on weekends (merged into main list) */}
+      {!loading && !isWeekend && (
         <div className="mt-6 mb-2">
           {/* Big divider */}
           <div className="relative mx-4 mb-4">

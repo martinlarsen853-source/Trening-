@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { supabase, type Activity } from '@/lib/supabase';
 import { DagsformWidget } from './DagsformWidget';
-import { MapPin, Clock, ChevronRight } from 'lucide-react';
+import { MapPin, Clock, ChevronRight, Box } from 'lucide-react';
+import { BygningKart } from './BygningKart';
 import { format } from 'date-fns';
 import { nb } from 'date-fns/locale';
 
@@ -66,34 +67,69 @@ const TOUR_URL = 'https://bhss.adfectus.io/bundle/showcase.html?m=yPcBVhF91Z7&pl
 // ─── Map modal ───────────────────────────────────────────────────────────────
 
 function MapModal({ activity, onClose }: { activity: Activity; onClose: () => void }) {
+  const [show3d, setShow3d] = useState(false);
+
   return (
-    <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex flex-col" onClick={onClose}>
-      {/* Header */}
+    <div className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-sm flex items-end" onClick={onClose}>
       <div
-        className="flex items-center justify-between px-5 pt-12 pb-3 flex-shrink-0"
+        className="w-full bg-white rounded-t-3xl max-w-lg mx-auto overflow-hidden"
+        style={{ maxHeight: '90vh' }}
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center gap-2">
-          <MapPin size={18} className="text-blue-400" />
-          <span className="text-white font-bold text-base">{activity.location ?? activity.name}</span>
+        {/* Handle */}
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="w-10 h-1 bg-gray-200 rounded-full" />
         </div>
-        <button
-          onClick={onClose}
-          className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white text-lg leading-none"
-        >
-          ×
-        </button>
-      </div>
 
-      {/* 3D tour iframe */}
-      <div className="flex-1 mx-3 mb-3 rounded-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
-        <iframe
-          src={TOUR_URL}
-          className="w-full h-full border-0"
-          allowFullScreen
-          allow="xr-spatial-tracking"
-          title="3D-omvisning BHS"
-        />
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-3">
+          <div className="flex items-center gap-2">
+            <MapPin size={16} className="text-blue-500 flex-shrink-0" />
+            <span className="font-bold text-gray-900">{activity.location ?? activity.name}</span>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none w-7 h-7 flex items-center justify-center">×</button>
+        </div>
+
+        {show3d ? (
+          /* 3D-omvisning */
+          <div className="mx-4 mb-4 rounded-2xl overflow-hidden" style={{ height: '55vh' }}>
+            <iframe
+              src={TOUR_URL}
+              className="w-full h-full border-0"
+              allowFullScreen
+              allow="xr-spatial-tracking"
+              title="3D-omvisning BHS"
+            />
+          </div>
+        ) : (
+          /* Oversiktskart */
+          <div className="px-4 pb-4">
+            <div className="bg-blue-50 rounded-2xl p-3 mb-3">
+              <BygningKart location={activity.location} />
+            </div>
+            <p className="text-xs text-gray-400 text-center mb-3">
+              Skjematisk oversikt — ikke i målestokk
+            </p>
+            <button
+              onClick={() => setShow3d(true)}
+              className="w-full rounded-2xl bg-blue-600 text-white font-bold py-3 text-sm flex items-center justify-center gap-2 active:scale-95 transition-all"
+            >
+              <Box size={16} />
+              Se 3D-omvisning av bygget
+            </button>
+          </div>
+        )}
+
+        {show3d && (
+          <div className="px-4 pb-4">
+            <button
+              onClick={() => setShow3d(false)}
+              className="w-full rounded-2xl bg-gray-100 text-gray-600 font-semibold py-2.5 text-sm active:scale-95 transition-all"
+            >
+              ← Tilbake til kart
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

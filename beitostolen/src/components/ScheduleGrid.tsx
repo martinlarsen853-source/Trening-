@@ -7,7 +7,7 @@ import { AbsenceModal } from './AbsenceModal';
 import { NameSetup } from './NameSetup';
 import { format, addDays, addWeeks, startOfWeek } from 'date-fns';
 import { nb } from 'date-fns/locale';
-import { Utensils, MessageCircle } from 'lucide-react';
+import { Utensils, MessageCircle, Pencil } from 'lucide-react';
 import { DagsformWidget } from './DagsformWidget';
 
 const DAYS = ['Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør', 'Søn'];
@@ -38,6 +38,10 @@ export function ScheduleGrid() {
   });
   const [weekOffset, setWeekOffset] = useState(0);
   const [selected, setSelected] = useState<Activity | null>(null);
+  const [isStaff, setIsStaff] = useState(false);
+  const [viewMode, setViewMode] = useState<'leder' | 'ledsager'>('ledsager');
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState('');
 
   // Compute the Monday of the target week (client-side, offset from current week)
   const targetWeekStart = format(
@@ -48,9 +52,13 @@ export function ScheduleGrid() {
   useEffect(() => {
     // Get child name from Supabase Auth user metadata (v2-auth)
     supabase.auth.getUser().then(({ data: { user } }) => {
+      const role = user?.user_metadata?.role as string | undefined;
+      const staff = role === 'staff';
+      setIsStaff(staff);
+      if (staff) setViewMode('leder');
+
       const name = user?.user_metadata?.full_name as string | undefined;
       if (name) { setChildName(name); return; }
-      // Fallback to localStorage for backwards compat
       const stored = localStorage.getItem('childName');
       if (stored) setChildName(stored);
     });
@@ -182,15 +190,74 @@ export function ScheduleGrid() {
         </div>
       </div>
 
-      {/* Child name (from account) */}
+      {/* Leder/Ledsager toggle — only for staff */}
+      {isStaff && (
+        <div className="px-4 pt-2 pb-1 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-semibold text-gray-700">
+              {viewMode === 'leder' ? 'Ledermodus' : 'Ledsagermodus'}
+            </p>
+            <p className="text-xs text-gray-400">
+              {viewMode === 'leder' ? 'Dagsform og alle data synlig' : 'Standard foreldrevisning'}
+            </p>
+          </div>
+          <button
+            onClick={() => setViewMode((m) => m === 'leder' ? 'ledsager' : 'leder')}
+            className={`relative flex-shrink-0 w-14 h-7 rounded-full transition-colors duration-200 ${
+              viewMode === 'leder' ? 'bg-green-500' : 'bg-gray-300'
+            }`}
+            aria-label="Bytt visningsmodus"
+          >
+            <span className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-200 ${
+              viewMode === 'leder' ? 'translate-x-7' : 'translate-x-0.5'
+            }`} />
+          </button>
+        </div>
+      )}
+
+      {/* Child name — editable in leder mode */}
       <div className="px-4 pt-2 pb-0">
-        <p className="text-sm text-gray-500">
-          Barn: <span className="font-medium text-gray-700">{childName}</span>
-        </p>
+        {isStaff && viewMode === 'leder' ? (
+          editingName ? (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-500">Barn:</span>
+              <input
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { setChildName(nameInput); setEditingName(false); } }}
+                className="text-sm font-medium text-gray-700 border-b border-blue-400 outline-none bg-transparent w-32"
+                autoFocus
+              />
+              <button onClick={() => { setChildName(nameInput); setEditingName(false); }}
+                className="text-xs text-blue-600 font-semibold">OK</button>
+              <button onClick={() => setEditingName(false)}
+                className="text-xs text-gray-400">Avbryt</button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5">
+              <p className="text-sm text-gray-500">
+                Barn: <span className="font-medium text-gray-700">{childName}</span>
+              </p>
+              <button
+                onClick={() => { setNameInput(childName ?? ''); setEditingName(true); }}
+                className="text-gray-400 hover:text-blue-500 transition-colors"
+                aria-label="Bytt barnenavn"
+              >
+                <Pencil size={13} />
+              </button>
+            </div>
+          )
+        ) : (
+          <p className="text-sm text-gray-500">
+            Barn: <span className="font-medium text-gray-700">{childName}</span>
+          </p>
+        )}
       </div>
 
-      {/* Dagsform */}
-      <DagsformWidget childName={childName} />
+      {/* Dagsform — alltid synlig for foreldre (setter status), leder ser oversikt over alle */}
+      {childName && (
+        <DagsformWidget childName={childName} isLeder={isStaff && viewMode === 'leder'} />
+      )}
 
       {/* Day tabs */}
       <div className="flex gap-2 overflow-x-auto pb-3 px-4 pt-3 scrollbar-hide">

@@ -6,11 +6,14 @@ import { supabase } from '@/lib/supabase';
 
 const inputCls = "w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100";
 
+const STAFF_CODE = 'BHS-STAB';
+
 export default function SignupPage() {
   const [childName, setChildName] = useState('');
   const [parentName, setParentName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [staffCode, setStaffCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -18,6 +21,7 @@ export default function SignupPage() {
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
     if (password.length < 6) { setError('Passordet må være minst 6 tegn.'); return; }
+    const isStaff = staffCode.trim().toUpperCase() === STAFF_CODE;
     setLoading(true);
     setError('');
     const { error } = await supabase.auth.signUp({
@@ -25,8 +29,9 @@ export default function SignupPage() {
       password,
       options: {
         data: {
-          full_name: childName,    // used in ScheduleGrid (barnets navn)
-          parent_name: parentName, // used in Fellesrom (ditt navn)
+          full_name: isStaff ? parentName : childName,
+          parent_name: parentName,
+          ...(isStaff && { role: 'staff' }),
         },
       },
     });
@@ -60,6 +65,8 @@ export default function SignupPage() {
             onChange={(e) => setEmail(e.target.value)} required className={inputCls} />
           <input type="password" placeholder="Passord (min. 6 tegn)" value={password}
             onChange={(e) => setPassword(e.target.value)} required className={inputCls} />
+          <input type="text" placeholder="Stab-kode (valgfritt)" value={staffCode}
+            onChange={(e) => setStaffCode(e.target.value)} className={inputCls} />
           {error && <p className="text-red-500 text-sm">{error}</p>}
           <button type="submit" disabled={loading}
             className="w-full rounded-2xl bg-blue-600 text-white font-bold py-3 text-sm mt-1 disabled:opacity-60 active:scale-95 transition-all">

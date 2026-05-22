@@ -61,38 +61,39 @@ function initials(name: string) {
   return name.trim().split(/\s+/).map(n => n[0]).join('').toUpperCase().slice(0, 2);
 }
 
+const TOUR_URL = 'https://bhss.adfectus.io/bundle/showcase.html?m=yPcBVhF91Z7&play=1&qs=1&log=0';
+
 // ─── Map modal ───────────────────────────────────────────────────────────────
 
 function MapModal({ activity, onClose }: { activity: Activity; onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex items-end" onClick={onClose}>
+    <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex flex-col" onClick={onClose}>
+      {/* Header */}
       <div
-        className="w-full bg-white rounded-t-3xl p-6 max-w-lg mx-auto"
+        className="flex items-center justify-between px-5 pt-12 pb-3 flex-shrink-0"
         onClick={e => e.stopPropagation()}
       >
-        <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
-        <div className="flex items-center gap-2 mb-4">
-          <MapPin size={18} className="text-blue-500" />
-          <h3 className="text-lg font-bold text-gray-900">{activity.location ?? activity.name}</h3>
-        </div>
-        {/* Kart-bilde — legg inn /kart.jpg i public/ for å vise kartet */}
-        <div className="relative w-full aspect-[4/3] rounded-2xl overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col items-center justify-center mb-5">
-          <img
-            src="/kart.jpg"
-            alt="Kart over BHS"
-            className="absolute inset-0 w-full h-full object-cover"
-            onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
-          />
-          <MapPin size={36} className="text-blue-300 mb-2 relative z-10" />
-          <p className="text-base font-bold text-blue-700 relative z-10">{activity.location ?? 'Sted ikke angitt'}</p>
-          <p className="text-xs text-blue-400 mt-1 relative z-10">Kart over BHS-senteret legges til her</p>
+        <div className="flex items-center gap-2">
+          <MapPin size={18} className="text-blue-400" />
+          <span className="text-white font-bold text-base">{activity.location ?? activity.name}</span>
         </div>
         <button
           onClick={onClose}
-          className="w-full rounded-2xl bg-gray-100 text-gray-700 font-semibold py-3 text-sm active:scale-95 transition-all"
+          className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white text-lg leading-none"
         >
-          Lukk
+          ×
         </button>
+      </div>
+
+      {/* 3D tour iframe */}
+      <div className="flex-1 mx-3 mb-3 rounded-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+        <iframe
+          src={TOUR_URL}
+          className="w-full h-full border-0"
+          allowFullScreen
+          allow="xr-spatial-tracking"
+          title="3D-omvisning BHS"
+        />
       </div>
     </div>
   );

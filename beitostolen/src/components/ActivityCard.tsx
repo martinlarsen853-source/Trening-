@@ -43,6 +43,19 @@ export function ActivityCard({ activity, absences, childName, onClick }: Props) 
           <p className="font-bold text-gray-900 text-base leading-tight tracking-tight">
             {activity.name}
           </p>
+          {activity.load_level && (
+            <span className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1 ${
+              activity.load_level === 'lav'
+                ? 'bg-green-100 text-green-700'
+                : activity.load_level === 'middels'
+                ? 'bg-amber-100 text-amber-700'
+                : 'bg-red-100 text-red-700'
+            }`}>
+              {activity.load_level === 'lav' ? '🟢 Lav belastning'
+                : activity.load_level === 'middels' ? '🟡 Middels belastning'
+                : '🔴 Høy belastning'}
+            </span>
+          )}
           {activity.group_name === 'blå' && (
             <div className="flex items-center gap-1.5 mt-1">
               <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />

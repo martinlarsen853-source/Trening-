@@ -8,6 +8,7 @@ import { NameSetup } from './NameSetup';
 import { format, addDays, addWeeks, startOfWeek } from 'date-fns';
 import { nb } from 'date-fns/locale';
 import { Utensils, MessageCircle } from 'lucide-react';
+import { DagsformWidget } from './DagsformWidget';
 
 const DAYS = ['Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør', 'Søn'];
 
@@ -187,6 +188,9 @@ export function ScheduleGrid() {
           Barn: <span className="font-medium text-gray-700">{childName}</span>
         </p>
       </div>
+
+      {/* Dagsform */}
+      <DagsformWidget childName={childName} />
 
       {/* Day tabs */}
       <div className="flex gap-2 overflow-x-auto pb-3 px-4 pt-3 scrollbar-hide">

@@ -27,6 +27,15 @@ export type Activity = {
   group_name: 'blå' | 'gul' | null;
   target_child: string | null;
   is_adult_meeting: boolean;
+  load_level: 'lav' | 'middels' | 'høy' | null;
+};
+
+export type DailyCheckin = {
+  id: string;
+  child_name: string;
+  date: string;
+  form_level: 'grønn' | 'gul' | 'rød';
+  registered_at: string;
 };
 
 export type Absence = {

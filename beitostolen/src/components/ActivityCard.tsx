@@ -20,15 +20,21 @@ export function ActivityCard({ activity, absences, childName, onClick }: Props) 
       className={`w-full text-left rounded-3xl border p-5 transition-all active:scale-[0.99] ${
         myAbsence
           ? 'border-red-200 bg-red-50/60'
+          : activity.is_adult_meeting
+          ? 'border-green-200 bg-green-50/70 hover:border-green-300 hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] shadow-[0_2px_8px_rgba(0,0,0,0.03)]'
           : 'border-gray-100 bg-white hover:border-gray-200 hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] shadow-[0_2px_8px_rgba(0,0,0,0.03)]'
       }`}
     >
       <div className="flex items-start gap-3">
-        <div className="flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl px-3 py-2 min-w-[68px]">
-          <span className="text-base font-bold text-blue-900 tabular-nums leading-tight">
+        <div className={`flex flex-col items-center justify-center rounded-2xl px-3 py-2 min-w-[68px] ${
+          activity.is_adult_meeting
+            ? 'bg-gradient-to-br from-green-50 to-green-100'
+            : 'bg-gradient-to-br from-blue-50 to-blue-100'
+        }`}>
+          <span className={`text-base font-bold tabular-nums leading-tight ${activity.is_adult_meeting ? 'text-green-900' : 'text-blue-900'}`}>
             {activity.time_start.slice(0, 5)}
           </span>
-          <span className="text-[10px] font-medium text-blue-500 tabular-nums tracking-wide">
+          <span className={`text-[10px] font-medium tabular-nums tracking-wide ${activity.is_adult_meeting ? 'text-green-500' : 'text-blue-500'}`}>
             — {activity.time_end.slice(0, 5)}
           </span>
         </div>

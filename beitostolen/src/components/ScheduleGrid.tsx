@@ -5,7 +5,7 @@ import { supabase, type Activity, type Absence } from '@/lib/supabase';
 import { ActivityCard } from './ActivityCard';
 import { AbsenceModal } from './AbsenceModal';
 import { NameSetup } from './NameSetup';
-import { format, addDays, startOfWeek } from 'date-fns';
+import { format, addDays, addWeeks, startOfWeek } from 'date-fns';
 import { nb } from 'date-fns/locale';
 import { Utensils, MessageCircle } from 'lucide-react';
 
@@ -35,7 +35,14 @@ export function ScheduleGrid() {
     const day = new Date().getDay();
     return day === 0 ? 7 : day;
   });
+  const [weekOffset, setWeekOffset] = useState(0);
   const [selected, setSelected] = useState<Activity | null>(null);
+
+  // Compute the Monday of the target week (client-side, offset from current week)
+  const targetWeekStart = format(
+    addWeeks(startOfWeek(new Date(), { weekStartsOn: 1 }), weekOffset),
+    'yyyy-MM-dd'
+  );
 
   useEffect(() => {
     const stored = localStorage.getItem('childName');
@@ -49,17 +56,18 @@ export function ScheduleGrid() {
   }, []);
 
   useEffect(() => {
-    fetch('/api/activities')
+    setLoading(true);
+    fetch(`/api/activities?week=${targetWeekStart}`)
       .then((r) => r.json())
       .then((d) => {
         setActivities(d.activities ?? []);
         setFritidActivities(d.fritidActivities ?? []);
         setAbsences(d.absences ?? []);
-        setWeekStart(d.weekStart ?? '');
+        setWeekStart(d.weekStart ?? targetWeekStart);
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, []);
+  }, [targetWeekStart]);
 
   useEffect(() => {
     const channel = supabase
@@ -90,7 +98,9 @@ export function ScheduleGrid() {
     ? meetings.find((m) => m.child.toLowerCase() === childName.toLowerCase() && m.date === selectedDate)
     : null;
 
+  // Always show Man–Søn (1–7); add any extra days from DB on top
   const allDays = [...new Set([
+    1, 2, 3, 4, 5, 6, 7,
     ...activities.map((a) => a.day_of_week),
     ...fritidActivities.map((a) => a.day_of_week),
   ])].sort();
@@ -139,13 +149,37 @@ export function ScheduleGrid() {
   return (
     <div>
       {/* Page header */}
-      <div className="px-4 pt-4 pb-1">
-        <h2 className="text-xl font-bold text-gray-900">Timeplan</h2>
-        {weekStart && (
+      <div className="px-4 pt-4 pb-1 flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">Timeplan</h2>
           <p className="text-sm text-gray-500 mt-0.5">
             {format(ws, "'Uke' w · MMMM yyyy", { locale: nb })}
           </p>
-        )}
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setWeekOffset((o) => o - 1)}
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-white ring-1 ring-gray-100 text-gray-500 active:scale-95 transition-all"
+            aria-label="Forrige uke"
+          >
+            ‹
+          </button>
+          {weekOffset !== 0 && (
+            <button
+              onClick={() => setWeekOffset(0)}
+              className="text-[11px] font-semibold text-blue-600 px-2"
+            >
+              I dag
+            </button>
+          )}
+          <button
+            onClick={() => setWeekOffset((o) => o + 1)}
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-white ring-1 ring-gray-100 text-gray-500 active:scale-95 transition-all"
+            aria-label="Neste uke"
+          >
+            ›
+          </button>
+        </div>
       </div>
 
       {/* Name + change */}

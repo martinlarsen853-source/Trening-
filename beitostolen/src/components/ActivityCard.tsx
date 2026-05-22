@@ -77,6 +77,14 @@ export function ActivityCard({ activity, absences, childName, onClick }: Props) 
           {activity.location && (
             <p className="text-sm text-gray-500 mt-0.5">{activity.location}</p>
           )}
+          {activity.staff_name && (
+            <div className="flex items-center gap-1.5 mt-1.5">
+              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center text-[9px] font-bold text-indigo-700">
+                {activity.staff_name.trim().split(/\s+/).map((n) => n[0]).join('').toUpperCase().slice(0, 2)}
+              </span>
+              <span className="text-xs text-indigo-700 font-medium">{activity.staff_name}</span>
+            </div>
+          )}
           {activity.notes && (
             <p className="text-xs text-gray-400 mt-0.5 italic">{activity.notes}</p>
           )}

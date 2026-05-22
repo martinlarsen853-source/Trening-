@@ -28,6 +28,7 @@ export type Activity = {
   target_child: string | null;
   is_adult_meeting: boolean;
   load_level: 'lav' | 'middels' | 'høy' | null;
+  staff_name: string | null;
 };
 
 export type DailyCheckin = {

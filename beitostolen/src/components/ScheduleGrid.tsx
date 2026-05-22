@@ -113,7 +113,7 @@ export function ScheduleGrid() {
 
   const dayActivities = activities
     .filter((a) => a.day_of_week === selectedDay)
-    .filter((a) => !a.target_child || a.target_child.toLowerCase() === childName.toLowerCase())
+    .filter((a) => !a.target_child || a.target_child.toLowerCase() === (childName ?? '').toLowerCase())
     .sort((a, b) => a.time_start.localeCompare(b.time_start));
 
   const dayFritid = fritidActivities

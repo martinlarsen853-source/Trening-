@@ -25,6 +25,7 @@ export type Activity = {
   notes: string | null;
   is_fritid: boolean;
   group_name: 'blå' | 'gul' | null;
+  target_child: string | null;
 };
 
 export type Absence = {

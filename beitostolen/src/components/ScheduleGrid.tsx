@@ -42,6 +42,7 @@ export function ScheduleGrid() {
   const [viewMode, setViewMode] = useState<'leder' | 'ledsager'>('ledsager');
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState('');
+  const [authLoading, setAuthLoading] = useState(true);
 
   // Compute the Monday of the target week (client-side, offset from current week)
   const targetWeekStart = format(
@@ -58,9 +59,11 @@ export function ScheduleGrid() {
       if (staff) setViewMode('leder');
 
       const name = user?.user_metadata?.full_name as string | undefined;
-      if (name) { setChildName(name); return; }
-      const stored = localStorage.getItem('childName');
-      if (stored) setChildName(stored);
+      if (name) { setChildName(name); } else {
+        const stored = localStorage.getItem('childName');
+        if (stored) setChildName(stored);
+      }
+      setAuthLoading(false);
     });
   }, []);
 
@@ -151,7 +154,11 @@ export function ScheduleGrid() {
     return ta.localeCompare(tb);
   });
 
-  // While auth session is loading, show nothing (AuthGuard handles redirect)
+  if (authLoading) return (
+    <div className="flex items-center justify-center pt-20">
+      <div className="w-8 h-8 rounded-full border-2 border-blue-600 border-t-transparent animate-spin" />
+    </div>
+  );
   if (!childName) return null;
 
   return (

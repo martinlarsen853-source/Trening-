@@ -29,7 +29,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <path d="M0,70 L0,55 L160,35 L320,52 L480,28 L640,48 L800,24 L960,44 L1120,30 L1280,46 L1440,34 L1440,70 Z" fill="white" fillOpacity="0.08"/>
             <path d="M0,70 L0,63 L240,48 L480,60 L720,44 L960,58 L1200,46 L1440,56 L1440,70 Z" fill="white" fillOpacity="0.12"/>
           </svg>
-          <div className="relative z-10 px-5 pt-5 pb-8 flex items-start justify-between">
+          <div className="relative z-10 px-5 pt-4 pb-6 flex items-start justify-between">
             <div>
               <p className="text-[10px] font-bold tracking-[0.28em] text-blue-300 uppercase mb-1">Beitostølen Helsesportsenter</p>
               <h1 className="text-[2.4rem] font-black text-white leading-none tracking-tight drop-shadow-sm">Gruppe 2C</h1>
@@ -39,7 +39,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </header>
         <NavBar />
       </div>
-      <main className="pt-[172px] pb-8 min-h-screen">
+      <main className="pt-[160px] pb-8 min-h-screen">
         {children}
       </main>
     </>

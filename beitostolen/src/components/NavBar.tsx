@@ -22,7 +22,7 @@ export function NavBar() {
 
   return (
     <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-sm">
-      <div className="flex overflow-x-auto scrollbar-hide px-2 max-w-lg mx-auto">
+      <div className="flex overflow-x-auto scrollbar-hide px-1 max-w-lg mx-auto">
         {links.map((l) => {
           const active = !l.external && pathname === l.href;
           return (
@@ -30,7 +30,7 @@ export function NavBar() {
               key={l.href}
               href={l.href}
               {...(l.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-              className={`flex-shrink-0 px-4 py-3.5 text-sm font-semibold transition-colors border-b-2 whitespace-nowrap ${
+              className={`flex-shrink-0 px-3 py-3 text-sm font-semibold transition-colors border-b-2 whitespace-nowrap ${
                 active
                   ? 'border-blue-600 text-blue-700'
                   : 'border-transparent text-gray-500 hover:text-gray-800'
@@ -42,7 +42,7 @@ export function NavBar() {
         })}
         <button
           onClick={handleSignOut}
-          className="flex-shrink-0 ml-auto px-4 py-3.5 text-sm font-semibold text-gray-400 hover:text-red-500 transition-colors border-b-2 border-transparent whitespace-nowrap"
+          className="flex-shrink-0 ml-auto px-3 py-3 text-sm font-semibold text-gray-400 hover:text-red-500 transition-colors border-b-2 border-transparent whitespace-nowrap"
         >
           Logg ut
         </button>

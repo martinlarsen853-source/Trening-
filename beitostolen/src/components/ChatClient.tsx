@@ -82,9 +82,9 @@ export function ChatClient() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-220px)]">
+    <div className="flex flex-col h-[calc(100vh-160px)]">
       {/* Tabs */}
-      <div className="flex gap-1 px-4 pb-3">
+      <div className="flex gap-1 px-4 pt-3 pb-2">
         {(['gruppe', 'stab'] as Tab[]).map((t) => (
           <button
             key={t}

@@ -34,23 +34,21 @@ export function ActivityCard({ activity, absences, childName, onClick }: Props) 
         </div>
 
         <div className="flex-1 min-w-0 pt-0.5">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="font-bold text-gray-900 text-base leading-tight tracking-tight">
-              {activity.name}
-            </p>
-            {activity.group_name === 'blå' && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 uppercase tracking-wide">
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block" />
-                Blå · Jakob, Lukas, Lars, Johannes
-              </span>
-            )}
-            {activity.group_name === 'gul' && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 uppercase tracking-wide">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
-                Gul · Sigurd, Alice, Evelina, Marianna, Mia
-              </span>
-            )}
-          </div>
+          <p className="font-bold text-gray-900 text-base leading-tight tracking-tight">
+            {activity.name}
+          </p>
+          {activity.group_name === 'blå' && (
+            <div className="flex items-center gap-1.5 mt-1">
+              <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
+              <span className="text-xs font-semibold text-blue-700">Jakob · Lukas · Lars · Johannes</span>
+            </div>
+          )}
+          {activity.group_name === 'gul' && (
+            <div className="flex items-center gap-1.5 mt-1">
+              <span className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
+              <span className="text-xs font-semibold text-amber-700">Sigurd · Alice · Evelina · Marianna · Mia</span>
+            </div>
+          )}
           {activity.location && (
             <p className="text-sm text-gray-500 mt-0.5">{activity.location}</p>
           )}

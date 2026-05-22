@@ -24,6 +24,7 @@ export type Activity = {
   location: string | null;
   notes: string | null;
   is_fritid: boolean;
+  group_name: 'blå' | 'gul' | null;
 };
 
 export type Absence = {

@@ -9,7 +9,7 @@ import { format, addDays, startOfWeek } from 'date-fns';
 import { nb } from 'date-fns/locale';
 import { Utensils, MessageCircle } from 'lucide-react';
 
-const DAYS = ['Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør'];
+const DAYS = ['Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør', 'Søn'];
 
 // Meal slots — weekday vs weekend
 function getMeals(dayOfWeek: number) {
@@ -33,7 +33,7 @@ export function ScheduleGrid() {
   const [meetings, setMeetings] = useState<{ child: string; date: string; time: string; counselor: string }[]>([]);
   const [selectedDay, setSelectedDay] = useState<number>(() => {
     const day = new Date().getDay();
-    return day === 0 ? 6 : day;
+    return day === 0 ? 7 : day;
   });
   const [selected, setSelected] = useState<Activity | null>(null);
 

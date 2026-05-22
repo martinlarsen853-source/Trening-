@@ -46,7 +46,7 @@ export default function SignupPage() {
         <form onSubmit={handleSignup} className="flex flex-col gap-3">
           <input
             type="text"
-            placeholder="Ditt navn"
+            placeholder="Barnets navn"
             value={name}
             onChange={(e) => setName(e.target.value)}
             required

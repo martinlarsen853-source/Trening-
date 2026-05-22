@@ -38,8 +38,14 @@ export function ScheduleGrid() {
   const [selected, setSelected] = useState<Activity | null>(null);
 
   useEffect(() => {
-    const stored = localStorage.getItem('childName');
-    if (stored) setChildName(stored);
+    // Get child name from Supabase Auth user metadata (v2-auth)
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      const name = user?.user_metadata?.full_name as string | undefined;
+      if (name) { setChildName(name); return; }
+      // Fallback to localStorage for backwards compat
+      const stored = localStorage.getItem('childName');
+      if (stored) setChildName(stored);
+    });
   }, []);
 
   useEffect(() => {
@@ -125,16 +131,8 @@ export function ScheduleGrid() {
     return ta.localeCompare(tb);
   });
 
-  if (!childName) {
-    return (
-      <NameSetup
-        storageKey="childName"
-        label="Hva heter barnet ditt?"
-        placeholder="Skriv barnets navn..."
-        onSet={setChildName}
-      />
-    );
-  }
+  // While auth session is loading, show nothing (AuthGuard handles redirect)
+  if (!childName) return null;
 
   return (
     <div>
@@ -148,17 +146,11 @@ export function ScheduleGrid() {
         )}
       </div>
 
-      {/* Name + change */}
-      <div className="flex items-center justify-between px-4 pt-2 pb-0">
+      {/* Child name (from account) */}
+      <div className="px-4 pt-2 pb-0">
         <p className="text-sm text-gray-500">
           Barn: <span className="font-medium text-gray-700">{childName}</span>
         </p>
-        <button
-          onClick={() => { localStorage.removeItem('childName'); setChildName(null); }}
-          className="text-xs text-blue-600 font-medium py-1"
-        >
-          Bytt navn
-        </button>
       </div>
 
       {/* Day tabs */}

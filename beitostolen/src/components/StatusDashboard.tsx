@@ -119,8 +119,8 @@ function StatusPicker({
       <div className="w-full bg-white rounded-t-3xl max-w-lg mx-auto p-5" onClick={e => e.stopPropagation()}>
         <div className="flex justify-center mb-4"><div className="w-10 h-1 bg-gray-200 rounded-full" /></div>
         <p className="font-bold text-gray-900 mb-3">Sett status</p>
-        <div className="grid grid-cols-2 gap-2 mb-4">
-          {(Object.keys(STATUS_META) as ActivityStatus['status'][]).map(s => {
+        <div className="grid grid-cols-3 gap-2 mb-4">
+          {(['forsinket', 'avlyst', 'flyttet'] as const).map(s => {
             const m = STATUS_META[s];
             return (
               <button key={s} onClick={() => setPicked(s)}

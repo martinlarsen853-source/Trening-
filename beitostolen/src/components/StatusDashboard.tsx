@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { supabase, type Activity, type ActivityStatus, type StaffMember } from '@/lib/supabase';
 import { StaffAvatar } from './StaffAvatar';
 import { DagsformWidget } from './DagsformWidget';
+import { ActivityEditModal } from './ActivityEditModal';
+import { ChildAdaptations } from './ChildAdaptations';
 import { MapPin, Clock, ChevronRight, Box } from 'lucide-react';
 import { BygningKart, gpsToSvg } from './BygningKart';
 import { format } from 'date-fns';
@@ -256,10 +258,10 @@ function MapModal({ activity, onClose }: { activity: Activity; onClose: () => vo
 
 // ─── Current activity (large hero card) ─────────────────────────────────────
 
-function NowCard({ activity, liveStatus, staffMember, onMap, onEditStatus }: {
+function NowCard({ activity, liveStatus, staffMember, onMap, onEditStatus, onEdit }: {
   activity: Activity; liveStatus: ActivityStatus | null;
   staffMember: StaffMember | null;
-  onMap: () => void; onEditStatus?: () => void;
+  onMap: () => void; onEditStatus?: () => void; onEdit?: () => void;
 }) {
   const remaining = formatRemaining(activity.time_end);
   const load = activity.load_level ? LOAD[activity.load_level] : null;
@@ -282,6 +284,9 @@ function NowCard({ activity, liveStatus, staffMember, onMap, onEditStatus }: {
           }
           {load && !liveStatus && (
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${load.bg} ${load.text}`}>{load.label}</span>
+          )}
+          {onEdit && (
+            <button onClick={onEdit} className="text-white/60 hover:text-white text-xs font-semibold px-2 py-0.5 rounded-full bg-white/10">Rediger</button>
           )}
           {onEditStatus && (
             <button onClick={onEditStatus} className="text-white/60 hover:text-white text-lg leading-none w-6 h-6 flex items-center justify-center">⋯</button>
@@ -357,10 +362,10 @@ function UpcomingCard({ activity, label, liveStatus, staffMember, onMap, onEditS
             </div>
           )}
         </div>
-        {onEditStatus
-          ? <button onClick={onEditStatus} className="text-gray-300 hover:text-gray-500 text-lg w-6 h-6 flex items-center justify-center flex-shrink-0">⋯</button>
-          : <ChevronRight size={16} className="text-gray-300 flex-shrink-0" />
-        }
+        <div className="flex flex-col gap-1 flex-shrink-0">
+          {onEditStatus && <button onClick={onEditStatus} className="text-gray-300 hover:text-gray-500 text-lg w-6 h-6 flex items-center justify-center">⋯</button>}
+          {!onEditStatus && <ChevronRight size={16} className="text-gray-300" />}
+        </div>
       </div>
     </div>
   );
@@ -409,6 +414,7 @@ export function StatusDashboard() {
   const [, setTick] = useState(0);
   const [mapActivity, setMapActivity] = useState<Activity | null>(null);
   const [editStatusActivity, setEditStatusActivity] = useState<Activity | null>(null);
+  const [editActivity, setEditActivity] = useState<Activity | null>(null);
 
   // Fetch staff lookup
   useEffect(() => {
@@ -545,6 +551,9 @@ export function StatusDashboard() {
       {/* Dagsform */}
       <DagsformWidget childName={childName} isLeder={isStaff && viewMode === 'leder'} />
 
+      {/* Tilpasninger (kun synlig i leder-modus eller hvis barn har tilpasninger) */}
+      <ChildAdaptations childName={childName} isLeder={isStaff && viewMode === 'leder'} />
+
       {/* Nå */}
       <div className="mt-4">
         {loading ? (
@@ -557,6 +566,7 @@ export function StatusDashboard() {
               liveStatus={statuses[current.id] ?? null}
               staffMember={current.staff_id ? (staffMap[current.staff_id] ?? null) : null}
               onMap={() => setMapActivity(current)}
+              onEdit={isStaff && viewMode === 'leder' ? () => setEditActivity(current) : undefined}
               onEditStatus={isStaff && viewMode === 'leder' ? () => setEditStatusActivity(current) : undefined}
             />
           </>
@@ -603,6 +613,25 @@ export function StatusDashboard() {
 
       {/* Kartkort */}
       {mapActivity && <MapModal activity={mapActivity} onClose={() => setMapActivity(null)} />}
+
+      {/* Aktivitet-editor (leder) */}
+      {editActivity && (
+        <ActivityEditModal
+          activity={editActivity}
+          allStaff={Object.values(staffMap)}
+          onClose={() => setEditActivity(null)}
+          onSaved={({ load_level, staffIds }) => {
+            setActivities(prev => prev.map(a =>
+              a.id === editActivity.id ? { ...a, load_level } : a
+            ));
+            // Update staffMap display — first selected staff becomes primary display
+            const first = staffIds[0];
+            setActivities(prev => prev.map(a =>
+              a.id === editActivity.id ? { ...a, staff_id: first ?? null } : a
+            ));
+          }}
+        />
+      )}
 
       {/* Status-editor (leder) */}
       {editStatusActivity && (

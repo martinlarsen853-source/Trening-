@@ -32,6 +32,14 @@ export type Activity = {
   staff_id: string | null;
 };
 
+export type ChildProfile = {
+  id: string;
+  child_name: string;
+  adaptations: string[];
+  note: string | null;
+  updated_at: string;
+};
+
 export type StaffMember = {
   id: string;
   name: string;

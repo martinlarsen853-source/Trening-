@@ -550,12 +550,14 @@ export function StatusDashboard() {
     });
   }, []);
 
-  // Fetch activities + statuses
+  // Fetch activities + statuses in parallel (no waterfall)
   useEffect(() => {
     const today = cestDate().toISOString().slice(0, 10);
-    fetch(`/api/activities?week=${currentWeekStart()}`)
-      .then(r => r.json())
-      .then(async d => {
+    Promise.all([
+      fetch(`/api/activities?week=${currentWeekStart()}`).then(r => r.json()),
+      supabase.from('activity_status').select('*').eq('date', today).then(r => r.data ?? []),
+    ])
+      .then(([d, statusData]) => {
         const dayOfWeek = todayDayOfWeek();
         const all: Activity[] = [...(d.activities ?? []), ...(d.fritidActivities ?? [])];
         const todayActs = all
@@ -563,18 +565,9 @@ export function StatusDashboard() {
           .filter(a => !a.target_child || a.target_child.toLowerCase() === childName.toLowerCase())
           .sort((a, b) => a.time_start.localeCompare(b.time_start));
         setActivities(todayActs);
-
-        if (todayActs.length > 0) {
-          const { data } = await supabase
-            .from('activity_status').select('*')
-            .in('activity_id', todayActs.map(a => a.id))
-            .eq('date', today);
-          if (data) {
-            const map: Record<string, ActivityStatus> = {};
-            for (const s of data) map[s.activity_id] = s as ActivityStatus;
-            setStatuses(map);
-          }
-        }
+        const map: Record<string, ActivityStatus> = {};
+        for (const s of (statusData as ActivityStatus[])) map[s.activity_id] = s;
+        setStatuses(map);
         setLoading(false);
       })
       .catch(() => setLoading(false));

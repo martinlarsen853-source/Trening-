@@ -5,6 +5,9 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
 
+// Cache response at the CDN/browser level for 30s, serve stale for 2 min while revalidating
+const CACHE_HEADERS = { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=120' };
+
 export async function GET(req: Request) {
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -34,5 +37,5 @@ export async function GET(req: Request) {
     fritidActivities: fritidActivities ?? [],
     absences: absences ?? [],
     weekStart,
-  });
+  }, { headers: CACHE_HEADERS });
 }

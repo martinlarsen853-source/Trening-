@@ -19,16 +19,13 @@ export function WeatherWidget() {
   const [weather, setWeather] = useState<{ temp: number; emoji: string } | null>(null);
 
   useEffect(() => {
-    fetch(
-      'https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=61.3002&lon=8.9303',
-      { headers: { 'User-Agent': 'beitostolen-2c-app/1.0' } }
-    )
+    // Use the cached /api/weather (30-min server cache) instead of calling met.no directly
+    fetch('/api/weather')
       .then((r) => r.json())
-      .then((data) => {
-        const now = data.properties.timeseries[0];
-        const temp = Math.round(now.data.instant.details.air_temperature);
-        const symbol: string = now.data.next_1_hours?.summary?.symbol_code ?? '';
-        setWeather({ temp, emoji: symbolToEmoji(symbol) });
+      .then(({ timeseries }) => {
+        if (!timeseries?.length) return;
+        const now = timeseries[0];
+        setWeather({ temp: now.temp, emoji: symbolToEmoji(now.symbol) });
       })
       .catch(() => {});
   }, []);

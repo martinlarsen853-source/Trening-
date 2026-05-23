@@ -9,15 +9,15 @@ import {
 } from 'lucide-react';
 
 const MAIN_TABS = [
-  { href: '/',         label: 'Status',   Icon: Activity },
-  { href: '/timeplan', label: 'Timeplan', Icon: Calendar },
-  { href: '/mat',      label: 'Mat',      Icon: Utensils },
-  { href: '/chat',     label: 'Chat',     Icon: MessageCircle },
+  { href: '/',          label: 'Status',    Icon: Activity },
+  { href: '/timeplan',  label: 'Timeplan',  Icon: Calendar },
+  { href: '/fellesrom', label: 'Fellesrom', Icon: Home },
+  { href: '/chat',      label: 'Chat',      Icon: MessageCircle },
 ] as const;
 
 const MORE_LINKS = [
   { href: '/kart',        label: 'Kart',         Icon: Map,          external: false },
-  { href: '/fellesrom',   label: 'Fellesrom',     Icon: Home,         external: false },
+  { href: '/mat',         label: 'Mat',           Icon: Utensils,     external: false },
   { href: '/ansatte',     label: 'Ansatte',       Icon: Users,        external: false },
   { href: 'https://ombudsmann-6u0j9kup8-martins-projects-f84ff334.vercel.app',
                           label: 'Ombudsmann',    Icon: ExternalLink, external: true  },
@@ -38,6 +38,7 @@ export function NavBar() {
         style={{
           paddingBottom: 'env(safe-area-inset-bottom)',
           boxShadow: '0 -1px 16px rgba(0,0,0,0.07)',
+          touchAction: 'manipulation',
         }}
       >
         <div className="flex max-w-lg mx-auto">

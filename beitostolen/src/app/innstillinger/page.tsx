@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useTheme } from '@/components/ThemeProvider';
 
 function Toggle({ on, onToggle, label, description }: {
@@ -40,6 +41,7 @@ export default function InnstillingerPage() {
     setLederMode(on);
     if (on) localStorage.setItem('lederMode', 'true');
     else localStorage.removeItem('lederMode');
+    window.location.reload();
   }
 
   return (
@@ -71,10 +73,27 @@ export default function InnstillingerPage() {
           description="Aktiver redigering av aktiviteter, fremmøte og status"
         />
       </div>
+
       {lederMode && (
-        <p className="text-xs text-amber-600 mt-2 px-1">
-          Leder-modus er aktiv — last siden på nytt for at det skal tre i kraft
-        </p>
+        <div className="mt-4">
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">Lederverktøy</p>
+          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm divide-y divide-gray-100 overflow-hidden">
+            <Link href="/ansatte" className="flex items-center justify-between px-4 py-4 hover:bg-gray-50 active:bg-gray-100 transition-colors">
+              <div>
+                <p className="font-semibold text-gray-900">Administrer ansatte</p>
+                <p className="text-sm text-gray-500 mt-0.5">Legg til, rediger eller fjern ansatte</p>
+              </div>
+              <span className="text-gray-300 text-lg">›</span>
+            </Link>
+            <Link href="/timeplan" className="flex items-center justify-between px-4 py-4 hover:bg-gray-50 active:bg-gray-100 transition-colors">
+              <div>
+                <p className="font-semibold text-gray-900">Timeplan (leder)</p>
+                <p className="text-sm text-gray-500 mt-0.5">Rediger aktiviteter og belastningsnivå</p>
+              </div>
+              <span className="text-gray-300 text-lg">›</span>
+            </Link>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -140,9 +140,7 @@ export default function AnsattePage() {
   const [modal, setModal] = useState<StaffMember | null | 'new'>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setIsStaff(user?.user_metadata?.role === 'staff');
-    });
+    setIsStaff(localStorage.getItem('lederMode') === 'true');
     supabase.from('staff').select('*').order('sort_order').order('name')
       .then(({ data }) => { setStaff((data ?? []) as StaffMember[]); setLoading(false); });
   }, []);

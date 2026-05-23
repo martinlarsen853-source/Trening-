@@ -12,7 +12,13 @@ export const VAPID_PUBLIC_KEY =
   process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
   'BOMLIcvnLWpJmvy7E61M39g0BnhIgQME_2_lJdjC8j3-vxpkF1HSvJstCW8yfHqxUPMm8Dbobn35IJfm1v5vgNI';
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+    detectSessionInUrl: false,
+  },
+});
 
 export type Activity = {
   id: string;

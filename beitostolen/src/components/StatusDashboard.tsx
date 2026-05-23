@@ -532,8 +532,9 @@ export function StatusDashboard() {
     return () => clearInterval(id);
   }, []);
 
-  // Fetch staff
+  // Fetch staff — only needed for leder detail view
   useEffect(() => {
+    if (!isStaff) return;
     supabase.from('staff').select('*').then(({ data }) => {
       if (data) {
         const m: Record<string, StaffMember> = {};
@@ -541,14 +542,15 @@ export function StatusDashboard() {
         setStaffMap(m);
       }
     });
-  }, []);
+  }, [isStaff]);
 
-  // Fetch child profiles
+  // Fetch child profiles — only needed for leder attendance view
   useEffect(() => {
+    if (!isStaff) return;
     supabase.from('child_profiles').select('*').then(({ data }) => {
       if (data) setChildProfiles(data as ChildProfile[]);
     });
-  }, []);
+  }, [isStaff]);
 
   // Fetch activities + statuses in parallel (no waterfall)
   useEffect(() => {

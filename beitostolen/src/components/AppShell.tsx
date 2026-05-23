@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { NavBar } from './NavBar';
 import { WeatherWidget } from './WeatherWidget';
@@ -9,6 +10,11 @@ const AUTH_PATHS = ['/login', '/signup'];
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isAuth = AUTH_PATHS.includes(pathname);
+
+  useEffect(() => {
+    if (!localStorage.getItem('childName')) localStorage.setItem('childName', 'Evelina');
+    if (!localStorage.getItem('parentName')) localStorage.setItem('parentName', 'Martin');
+  }, []);
 
   if (isAuth) return <>{children}</>;
 

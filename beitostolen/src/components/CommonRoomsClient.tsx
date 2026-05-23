@@ -8,18 +8,14 @@ import { NameSetup } from './NameSetup';
 type Props = { rooms: string[] };
 
 export function CommonRoomsClient({ rooms }: Props) {
-  const [parentName, setParentName] = useState<string | null>(null);
+  const [parentName, setParentName] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const stored = localStorage.getItem('parentName');
+    if (stored) return stored;
+    localStorage.setItem('parentName', 'Martin');
+    return 'Martin';
+  });
   const [checkins, setCheckins] = useState<RoomCheckin[]>([]);
-
-  useEffect(() => {
-    // Read parent name from Supabase Auth user metadata (v2-auth)
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      const name = user?.user_metadata?.parent_name as string | undefined;
-      if (name) { setParentName(name); return; }
-      const stored = localStorage.getItem('parentName');
-      if (stored) setParentName(stored);
-    });
-  }, []);
 
   useEffect(() => {
     fetch('/api/checkins')

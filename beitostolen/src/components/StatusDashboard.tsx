@@ -436,9 +436,13 @@ function NamePrompt({ onName }: { onName: (name: string) => void }) {
 // ─── Main component ──────────────────────────────────────────────────────────
 
 export function StatusDashboard() {
-  const [childName, setChildName] = useState<string | null>(() =>
-    typeof window !== 'undefined' ? localStorage.getItem('childName') : null
-  );
+  const [childName, setChildName] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const stored = localStorage.getItem('childName');
+    if (stored) return stored;
+    localStorage.setItem('childName', 'Evelina');
+    return 'Evelina';
+  });
   const [isStaff, setIsStaff] = useState(() =>
     typeof window !== 'undefined' && localStorage.getItem('lederMode') === 'true'
   );

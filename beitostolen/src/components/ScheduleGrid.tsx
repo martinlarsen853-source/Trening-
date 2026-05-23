@@ -25,9 +25,13 @@ function getMeals(dayOfWeek: number) {
 }
 
 export function ScheduleGrid() {
-  const [childName, setChildName] = useState<string | null>(() =>
-    typeof window !== 'undefined' ? localStorage.getItem('childName') : null
-  );
+  const [childName, setChildName] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const stored = localStorage.getItem('childName');
+    if (stored) return stored;
+    localStorage.setItem('childName', 'Evelina');
+    return 'Evelina';
+  });
   const [activities, setActivities] = useState<Activity[]>([]);
   const [fritidActivities, setFritidActivities] = useState<Activity[]>([]);
   const [absences, setAbsences] = useState<Absence[]>([]);

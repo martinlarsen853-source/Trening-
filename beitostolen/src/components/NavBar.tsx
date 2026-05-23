@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import {
@@ -45,16 +46,16 @@ export function NavBar() {
           {MAIN_TABS.map(({ href, label, Icon }) => {
             const active = pathname === href;
             return (
-              <button
+              <Link
                 key={href}
-                onClick={() => router.push(href)}
+                href={href}
                 className={`flex-1 flex flex-col items-center gap-[3px] py-2.5 select-none transition-colors active:opacity-60 ${
                   active ? 'text-blue-600' : 'text-gray-400'
                 }`}
               >
                 <Icon size={24} strokeWidth={active ? 2.5 : 1.8} />
                 <span className="text-[10px] font-bold leading-none">{label}</span>
-              </button>
+              </Link>
             );
           })}
 

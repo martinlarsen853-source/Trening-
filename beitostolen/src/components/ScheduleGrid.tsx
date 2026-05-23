@@ -8,7 +8,6 @@ import { NameSetup } from './NameSetup';
 import { format, addDays, addWeeks, startOfWeek } from 'date-fns';
 import { nb } from 'date-fns/locale';
 import { Utensils, MessageCircle, Pencil } from 'lucide-react';
-import { DagsformWidget } from './DagsformWidget';
 
 const DAYS = ['Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør', 'Søn'];
 
@@ -248,11 +247,6 @@ export function ScheduleGrid() {
           </p>
         )}
       </div>
-
-      {/* Dagsform — alltid synlig for foreldre (setter status), leder ser oversikt over alle */}
-      {childName && (
-        <DagsformWidget childName={childName} isLeder={isStaff && viewMode === 'leder'} />
-      )}
 
       {/* Day tabs */}
       <div className="flex gap-2 overflow-x-auto pb-3 px-4 pt-3 scrollbar-hide">

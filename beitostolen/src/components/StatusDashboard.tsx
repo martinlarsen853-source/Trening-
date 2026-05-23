@@ -10,6 +10,7 @@ import { BygningKart, gpsToSvg } from './BygningKart';
 import { MapPin, MessageCircle, Users, Clock, Box, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { nb } from 'date-fns/locale';
+import { DagsformWidget } from './DagsformWidget';
 
 // ─── Time helpers (CEST = UTC+2) ─────────────────────────────────────────────
 
@@ -611,6 +612,9 @@ export function StatusDashboard() {
           {format(cestDate(), 'EEEE d. MMMM', { locale: nb })}
         </p>
       </div>
+
+      {/* Dagsform */}
+      <DagsformWidget childName={childName} isLeder={isStaff} />
 
       {/* Activity card */}
       {loading ? (

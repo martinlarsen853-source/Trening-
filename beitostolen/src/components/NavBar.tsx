@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 
 const MAIN_TABS = [
-  { href: '/',          label: 'Status',    Icon: Activity },
+  { href: '/',          label: 'Hjem',      Icon: Activity },
   { href: '/timeplan',  label: 'Timeplan',  Icon: Calendar },
   { href: '/fellesrom', label: 'Fellesrom', Icon: Home },
   { href: '/chat',      label: 'Chat',      Icon: MessageCircle },

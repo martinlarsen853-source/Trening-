@@ -40,7 +40,10 @@ export function ChatClient() {
       .select('*')
       .eq('channel', tab)
       .order('created_at', { ascending: true })
-      .then(({ data }) => setMessages((data as Message[]) ?? []));
+      .then(({ data }) => {
+        setMessages((data as Message[]) ?? []);
+        localStorage.setItem(`msgSeenAt_${tab}`, new Date().toISOString());
+      });
   }, [tab]);
 
   // Realtime

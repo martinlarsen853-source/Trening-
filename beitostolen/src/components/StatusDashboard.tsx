@@ -436,11 +436,16 @@ function NamePrompt({ onName }: { onName: (name: string) => void }) {
 // ─── Main component ──────────────────────────────────────────────────────────
 
 export function StatusDashboard() {
-  const [childName, setChildName] = useState<string | null>(null);
-  const [authLoading, setAuthLoading] = useState(true);
-  const [isStaff, setIsStaff] = useState(false);
-  const [staffName, setStaffName] = useState('');
-  const [viewMode, setViewMode] = useState<'leder' | 'ledsager'>('ledsager');
+  const [childName, setChildName] = useState<string | null>(() =>
+    typeof window !== 'undefined' ? localStorage.getItem('childName') : null
+  );
+  const [isStaff, setIsStaff] = useState(() =>
+    typeof window !== 'undefined' && localStorage.getItem('lederMode') === 'true'
+  );
+  const [staffName, setStaffName] = useState('Leder');
+  const [viewMode, setViewMode] = useState<'leder' | 'ledsager'>(() =>
+    typeof window !== 'undefined' && localStorage.getItem('lederMode') === 'true' ? 'leder' : 'ledsager'
+  );
   const [activities, setActivities] = useState<Activity[]>([]);
   const [statuses, setStatuses] = useState<Record<string, ActivityStatus>>({});
   const [staffMap, setStaffMap] = useState<Record<string, StaffMember>>({});
@@ -468,32 +473,6 @@ export function StatusDashboard() {
     return () => clearInterval(id);
   }, []);
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const user = session?.user;
-      const role = user?.user_metadata?.role;
-      const localLeder = localStorage.getItem('lederMode') === 'true';
-      const staff = role === 'staff' || localLeder;
-      setIsStaff(staff);
-      if (staff) {
-        setViewMode('leder');
-        setStaffName(user?.user_metadata?.full_name ?? 'Leder');
-      }
-      const name = user?.user_metadata?.full_name as string | undefined;
-      if (name) { setChildName(name); } else {
-        const stored = localStorage.getItem('childName');
-        if (stored) setChildName(stored);
-      }
-      setAuthLoading(false);
-    }).catch(() => {
-      const localLeder = localStorage.getItem('lederMode') === 'true';
-      setIsStaff(localLeder);
-      if (localLeder) setViewMode('leder');
-      const stored = localStorage.getItem('childName');
-      if (stored) setChildName(stored);
-      setAuthLoading(false);
-    });
-  }, []);
 
   useEffect(() => {
     if (!childName) return;
@@ -548,13 +527,6 @@ export function StatusDashboard() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  if (authLoading) return (
-    <div className="flex items-center justify-center pt-20">
-      <div className="w-8 h-8 rounded-full border-2 border-blue-600 border-t-transparent animate-spin" />
-    </div>
-  );
-
-  // No name set yet — show inline prompt
   if (!childName) return <NamePrompt onName={n => { localStorage.setItem('childName', n); setChildName(n); }} />;
 
   const today = new Date(Date.now() + 2 * 3_600_000).toISOString().slice(0, 10);

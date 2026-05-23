@@ -25,7 +25,9 @@ function getMeals(dayOfWeek: number) {
 }
 
 export function ScheduleGrid() {
-  const [childName, setChildName] = useState<string | null>(null);
+  const [childName, setChildName] = useState<string | null>(() =>
+    typeof window !== 'undefined' ? localStorage.getItem('childName') : null
+  );
   const [activities, setActivities] = useState<Activity[]>([]);
   const [fritidActivities, setFritidActivities] = useState<Activity[]>([]);
   const [absences, setAbsences] = useState<Absence[]>([]);
@@ -38,11 +40,14 @@ export function ScheduleGrid() {
   });
   const [weekOffset, setWeekOffset] = useState(0);
   const [selected, setSelected] = useState<Activity | null>(null);
-  const [isStaff, setIsStaff] = useState(false);
-  const [viewMode, setViewMode] = useState<'leder' | 'ledsager'>('ledsager');
+  const [isStaff, setIsStaff] = useState(() =>
+    typeof window !== 'undefined' && localStorage.getItem('lederMode') === 'true'
+  );
+  const [viewMode, setViewMode] = useState<'leder' | 'ledsager'>(() =>
+    typeof window !== 'undefined' && localStorage.getItem('lederMode') === 'true' ? 'leder' : 'ledsager'
+  );
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState('');
-  const [authLoading, setAuthLoading] = useState(true);
 
   // Compute the Monday of the target week (client-side, offset from current week)
   const targetWeekStart = format(
@@ -50,30 +55,6 @@ export function ScheduleGrid() {
     'yyyy-MM-dd'
   );
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const user = session?.user;
-      const role = user?.user_metadata?.role as string | undefined;
-      const localLeder = localStorage.getItem('lederMode') === 'true';
-      const staff = role === 'staff' || localLeder;
-      setIsStaff(staff);
-      if (staff) setViewMode('leder');
-
-      const name = user?.user_metadata?.full_name as string | undefined;
-      if (name) { setChildName(name); } else {
-        const stored = localStorage.getItem('childName');
-        if (stored) setChildName(stored);
-      }
-      setAuthLoading(false);
-    }).catch(() => {
-      const localLeder = localStorage.getItem('lederMode') === 'true';
-      setIsStaff(localLeder);
-      if (localLeder) setViewMode('leder');
-      const stored = localStorage.getItem('childName');
-      if (stored) setChildName(stored);
-      setAuthLoading(false);
-    });
-  }, []);
 
   useEffect(() => {
     fetch('/api/meetings')
@@ -162,11 +143,6 @@ export function ScheduleGrid() {
     return ta.localeCompare(tb);
   });
 
-  if (authLoading) return (
-    <div className="flex items-center justify-center pt-20">
-      <div className="w-8 h-8 rounded-full border-2 border-blue-600 border-t-transparent animate-spin" />
-    </div>
-  );
   if (!childName) return null;
 
   return (

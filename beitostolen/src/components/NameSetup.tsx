@@ -20,7 +20,7 @@ export function NameSetup({ storageKey, label, placeholder, onSet }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
       <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm">
         <h2 className="text-xl font-bold text-gray-900 mb-2">{label}</h2>
         <p className="text-gray-500 text-sm mb-6">

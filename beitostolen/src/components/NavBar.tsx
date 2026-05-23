@@ -1,7 +1,6 @@
 'use client';
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import {
   Activity, Calendar, Utensils, MessageCircle,
@@ -26,6 +25,7 @@ const MORE_LINKS = [
 
 export function NavBar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [moreOpen, setMoreOpen] = useState(false);
 
   const isMoreActive = MORE_LINKS.some(l => !l.external && pathname === l.href);
@@ -34,7 +34,7 @@ export function NavBar() {
     <>
       {/* Bottom tab bar */}
       <nav
-        className="fixed bottom-0 left-0 right-0 z-50 bg-white/96 backdrop-blur-md border-t border-gray-100"
+        className="fixed bottom-0 left-0 right-0 z-[999] bg-white/96 backdrop-blur-md border-t border-gray-100"
         style={{
           paddingBottom: 'env(safe-area-inset-bottom)',
           boxShadow: '0 -1px 16px rgba(0,0,0,0.07)',
@@ -45,16 +45,16 @@ export function NavBar() {
           {MAIN_TABS.map(({ href, label, Icon }) => {
             const active = pathname === href;
             return (
-              <Link
+              <button
                 key={href}
-                href={href}
-                className={`flex-1 flex flex-col items-center gap-[3px] py-2.5 select-none transition-colors ${
+                onClick={() => router.push(href)}
+                className={`flex-1 flex flex-col items-center gap-[3px] py-2.5 select-none transition-colors active:opacity-60 ${
                   active ? 'text-blue-600' : 'text-gray-400'
                 }`}
               >
                 <Icon size={24} strokeWidth={active ? 2.5 : 1.8} />
                 <span className="text-[10px] font-bold leading-none">{label}</span>
-              </Link>
+              </button>
             );
           })}
 
@@ -79,7 +79,7 @@ export function NavBar() {
             onClick={() => setMoreOpen(false)}
           />
           <div
-            className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl max-w-lg mx-auto"
+            className="fixed bottom-0 left-0 right-0 z-[998] bg-white rounded-t-3xl max-w-lg mx-auto"
             style={{
               paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)',
               boxShadow: '0 -4px 32px rgba(0,0,0,0.12)',
@@ -111,19 +111,18 @@ export function NavBar() {
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => setMoreOpen(false)}
-                    className="flex flex-col items-center"
+                    className="flex flex-col items-center active:opacity-60"
                   >
                     {inner}
                   </a>
                 ) : (
-                  <Link
+                  <button
                     key={href}
-                    href={href}
-                    onClick={() => setMoreOpen(false)}
-                    className="flex flex-col items-center"
+                    onClick={() => { router.push(href); setMoreOpen(false); }}
+                    className="flex flex-col items-center active:opacity-60"
                   >
                     {inner}
-                  </Link>
+                  </button>
                 );
               })}
             </div>

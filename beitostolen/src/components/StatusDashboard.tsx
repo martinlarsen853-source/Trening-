@@ -271,10 +271,15 @@ function NowCard({ activity, liveStatus, onMap, onEditStatus }: {
           {remaining && !isAvlyst && <span className={`font-normal ${isAvlyst ? '' : 'text-blue-300'}`}> · {remaining}</span>}
         </span>
         <div className="flex items-center gap-2">
+          {liveStatus
+            ? <StatusBadge status={liveStatus.status} note={liveStatus.note} />
+            : <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-500/20 text-green-200">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-400" />Pågår
+              </span>
+          }
           {load && !liveStatus && (
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${load.bg} ${load.text}`}>{load.label}</span>
           )}
-          {liveStatus && <StatusBadge status={liveStatus.status} note={liveStatus.note} />}
           {onEditStatus && (
             <button onClick={onEditStatus} className="text-white/60 hover:text-white text-lg leading-none w-6 h-6 flex items-center justify-center">
               ⋯

@@ -29,6 +29,15 @@ export type Activity = {
   is_adult_meeting: boolean;
   load_level: 'lav' | 'middels' | 'høy' | null;
   staff_name: string | null;
+  staff_id: string | null;
+};
+
+export type StaffMember = {
+  id: string;
+  name: string;
+  title: string | null;
+  photo_url: string | null;
+  sort_order: number;
 };
 
 export type ActivityStatus = {

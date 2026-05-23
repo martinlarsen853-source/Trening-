@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase, type Activity, type ActivityStatus } from '@/lib/supabase';
+import { supabase, type Activity, type ActivityStatus, type StaffMember } from '@/lib/supabase';
+import { StaffAvatar } from './StaffAvatar';
 import { DagsformWidget } from './DagsformWidget';
 import { MapPin, Clock, ChevronRight, Box } from 'lucide-react';
 import { BygningKart, gpsToSvg } from './BygningKart';
@@ -255,20 +256,22 @@ function MapModal({ activity, onClose }: { activity: Activity; onClose: () => vo
 
 // ─── Current activity (large hero card) ─────────────────────────────────────
 
-function NowCard({ activity, liveStatus, onMap, onEditStatus }: {
+function NowCard({ activity, liveStatus, staffMember, onMap, onEditStatus }: {
   activity: Activity; liveStatus: ActivityStatus | null;
+  staffMember: StaffMember | null;
   onMap: () => void; onEditStatus?: () => void;
 }) {
   const remaining = formatRemaining(activity.time_end);
   const load = activity.load_level ? LOAD[activity.load_level] : null;
   const isAvlyst = liveStatus?.status === 'avlyst';
+  const displayName = staffMember?.name ?? activity.staff_name;
 
   return (
     <div className={`rounded-3xl p-5 shadow-lg ${isAvlyst ? 'bg-gray-200' : 'bg-gradient-to-br from-blue-600 to-blue-800 shadow-blue-500/25'}`}>
       <div className="flex items-center justify-between mb-2">
         <span className={`text-xs font-bold tracking-wide ${isAvlyst ? 'text-gray-500' : 'text-blue-200'}`}>
           {activity.time_start.slice(0, 5)} – {activity.time_end.slice(0, 5)}
-          {remaining && !isAvlyst && <span className={`font-normal ${isAvlyst ? '' : 'text-blue-300'}`}> · {remaining}</span>}
+          {remaining && !isAvlyst && <span className={`font-normal text-blue-300`}> · {remaining}</span>}
         </span>
         <div className="flex items-center gap-2">
           {liveStatus
@@ -281,9 +284,7 @@ function NowCard({ activity, liveStatus, onMap, onEditStatus }: {
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${load.bg} ${load.text}`}>{load.label}</span>
           )}
           {onEditStatus && (
-            <button onClick={onEditStatus} className="text-white/60 hover:text-white text-lg leading-none w-6 h-6 flex items-center justify-center">
-              ⋯
-            </button>
+            <button onClick={onEditStatus} className="text-white/60 hover:text-white text-lg leading-none w-6 h-6 flex items-center justify-center">⋯</button>
           )}
         </div>
       </div>
@@ -294,20 +295,19 @@ function NowCard({ activity, liveStatus, onMap, onEditStatus }: {
 
       {!isAvlyst && (
         <div className="flex flex-col gap-2">
-          {activity.staff_name && (
-            <div className="flex items-center gap-2">
-              <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0">
-                {initials(activity.staff_name)}
-              </span>
-              <span className="text-sm text-blue-100">{activity.staff_name}</span>
+          {displayName && (
+            <div className="flex items-center gap-2.5">
+              <StaffAvatar name={displayName} photoUrl={staffMember?.photo_url} size="sm" />
+              <div>
+                <p className="text-sm font-semibold text-white leading-tight">{displayName}</p>
+                {staffMember?.title && <p className="text-xs text-blue-200">{staffMember.title}</p>}
+              </div>
             </div>
           )}
           {activity.location && (
             <button onClick={onMap} className="flex items-center gap-1.5 text-left w-fit">
               <MapPin size={13} className="text-blue-300 flex-shrink-0" />
-              <span className="text-sm text-blue-200 underline underline-offset-2 decoration-blue-400/60">
-                {activity.location}
-              </span>
+              <span className="text-sm text-blue-200 underline underline-offset-2 decoration-blue-400/60">{activity.location}</span>
             </button>
           )}
         </div>
@@ -318,18 +318,21 @@ function NowCard({ activity, liveStatus, onMap, onEditStatus }: {
 
 // ─── Upcoming activity (smaller card) ───────────────────────────────────────
 
-function UpcomingCard({ activity, label, liveStatus, onMap, onEditStatus }: {
+function UpcomingCard({ activity, label, liveStatus, staffMember, onMap, onEditStatus }: {
   activity: Activity; label: string; liveStatus: ActivityStatus | null;
+  staffMember: StaffMember | null;
   onMap: () => void; onEditStatus?: () => void;
 }) {
   const until = formatUntil(activity.time_start);
   const load = activity.load_level ? LOAD[activity.load_level] : null;
   const isAvlyst = liveStatus?.status === 'avlyst';
+  const displayName = staffMember?.name ?? activity.staff_name;
 
   return (
     <div>
       <p className="text-[10px] font-bold tracking-widest text-gray-400 uppercase mb-1.5">{label}</p>
       <div className={`rounded-3xl border px-4 py-3.5 shadow-sm flex items-center gap-3 ${isAvlyst ? 'bg-gray-50 border-gray-100 opacity-60' : 'bg-white border-gray-100'}`}>
+        {displayName && <StaffAvatar name={displayName} photoUrl={staffMember?.photo_url} size="md" />}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5 flex-wrap">
             <span className="text-xs text-gray-400 tabular-nums">{activity.time_start.slice(0, 5)}</span>
@@ -342,8 +345,8 @@ function UpcomingCard({ activity, label, liveStatus, onMap, onEditStatus }: {
           <p className={`font-bold truncate ${isAvlyst ? 'text-gray-400 line-through' : 'text-gray-900'}`}>{activity.name}</p>
           {!isAvlyst && (
             <div className="flex items-center gap-3 mt-0.5">
-              {activity.staff_name && (
-                <span className="text-xs text-gray-400">{activity.staff_name.split(' ')[0]}</span>
+              {displayName && (
+                <span className="text-xs text-gray-400">{staffMember?.title ?? displayName.split(' ')[0]}</span>
               )}
               {activity.location && (
                 <button onClick={onMap} className="text-xs text-blue-500 flex items-center gap-0.5">
@@ -401,10 +404,22 @@ export function StatusDashboard() {
   const [viewMode, setViewMode] = useState<'leder' | 'ledsager'>('ledsager');
   const [activities, setActivities] = useState<Activity[]>([]);
   const [statuses, setStatuses] = useState<Record<string, ActivityStatus>>({});
+  const [staffMap, setStaffMap] = useState<Record<string, StaffMember>>({});
   const [loading, setLoading] = useState(true);
   const [, setTick] = useState(0);
   const [mapActivity, setMapActivity] = useState<Activity | null>(null);
   const [editStatusActivity, setEditStatusActivity] = useState<Activity | null>(null);
+
+  // Fetch staff lookup
+  useEffect(() => {
+    supabase.from('staff').select('*').then(({ data }) => {
+      if (data) {
+        const m: Record<string, StaffMember> = {};
+        for (const s of data) m[s.id] = s as StaffMember;
+        setStaffMap(m);
+      }
+    });
+  }, []);
 
   // Refresh time display every 30s
   useEffect(() => {
@@ -540,6 +555,7 @@ export function StatusDashboard() {
             <NowCard
               activity={current}
               liveStatus={statuses[current.id] ?? null}
+              staffMember={current.staff_id ? (staffMap[current.staff_id] ?? null) : null}
               onMap={() => setMapActivity(current)}
               onEditStatus={isStaff && viewMode === 'leder' ? () => setEditStatusActivity(current) : undefined}
             />
@@ -564,6 +580,7 @@ export function StatusDashboard() {
           <UpcomingCard
             activity={next} label="Neste"
             liveStatus={statuses[next.id] ?? null}
+            staffMember={next.staff_id ? (staffMap[next.staff_id] ?? null) : null}
             onMap={() => setMapActivity(next)}
             onEditStatus={isStaff && viewMode === 'leder' ? () => setEditStatusActivity(next) : undefined}
           />
@@ -574,6 +591,7 @@ export function StatusDashboard() {
           <UpcomingCard
             activity={afterNext} label="Etterpå"
             liveStatus={statuses[afterNext.id] ?? null}
+            staffMember={afterNext.staff_id ? (staffMap[afterNext.staff_id] ?? null) : null}
             onMap={() => setMapActivity(afterNext)}
             onEditStatus={isStaff && viewMode === 'leder' ? () => setEditStatusActivity(afterNext) : undefined}
           />

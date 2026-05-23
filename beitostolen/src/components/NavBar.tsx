@@ -9,6 +9,7 @@ const links = [
   { href: '/kart', label: 'Kart' },
   { href: '/mat', label: 'Mat' },
   { href: '/fellesrom', label: 'Fellesrom' },
+  { href: '/ansatte', label: 'Ansatte' },
   { href: '/chat', label: 'Chat' },
   { href: 'https://ombudsmann-6u0j9kup8-martins-projects-f84ff334.vercel.app', label: 'Ombudsmann', external: true },
   { href: '/innstillinger', label: '⚙️' },

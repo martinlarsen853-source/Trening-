@@ -31,6 +31,16 @@ export type Activity = {
   staff_name: string | null;
 };
 
+export type ActivityStatus = {
+  id: string;
+  activity_id: string;
+  date: string;
+  status: 'pågår' | 'forsinket' | 'avlyst' | 'flyttet';
+  note: string | null;
+  updated_at: string;
+  updated_by: string | null;
+};
+
 export type DailyCheckin = {
   id: string;
   child_name: string;

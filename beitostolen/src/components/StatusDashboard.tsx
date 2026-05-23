@@ -216,7 +216,7 @@ function ActivityDetailModal({ activity, liveStatus, staffMember, children, isLe
           {/* Staff */}
           {displayName && (
             <div className="flex items-center gap-3 mb-5 bg-gray-50 rounded-2xl px-4 py-3">
-              <StaffAvatar staff={staffMember} name={displayName} size="sm" />
+              <StaffAvatar name={displayName} photoUrl={staffMember?.photo_url ?? null} size="sm" />
               <div>
                 <p className="text-xs text-gray-400 font-medium">Ansvarlig</p>
                 <p className="font-semibold text-gray-900 text-sm">{displayName}</p>
@@ -377,7 +377,7 @@ function NextActivityCard({ activity, liveStatus, staffMember, isCurrent, onClic
         </div>
         <div className="flex items-center gap-2">
           {displayName && (
-            <StaffAvatar staff={staffMember} name={displayName} size="sm" />
+            <StaffAvatar name={displayName} photoUrl={staffMember?.photo_url ?? null} size="sm" />
           )}
           <ChevronRight size={16} className={isAvlyst ? 'text-gray-400' : 'text-white/50'} />
         </div>

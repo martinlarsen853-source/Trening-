@@ -67,16 +67,23 @@ export function ScheduleGrid() {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/activities?week=${targetWeekStart}`)
-      .then((r) => r.json())
-      .then((d) => {
-        setActivities(d.activities ?? []);
-        setFritidActivities(d.fritidActivities ?? []);
-        setAbsences(d.absences ?? []);
-        setWeekStart(d.weekStart ?? targetWeekStart);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+    const ws = targetWeekStart;
+    const we = format(addDays(new Date(ws + 'T12:00:00'), 6), 'yyyy-MM-dd');
+    Promise.all([
+      supabase.from('activities').select('*').eq('is_fritid', false)
+        .gte('week_start', ws).lte('week_start', we)
+        .order('day_of_week').order('time_start'),
+      supabase.from('activities').select('*').eq('is_fritid', true)
+        .gte('week_start', ws).lte('week_start', we)
+        .order('day_of_week').order('time_start'),
+      supabase.from('absences').select('*').gte('registered_at', ws),
+    ]).then(([{ data: acts }, { data: frits }, { data: abs }]) => {
+      setActivities((acts as Activity[]) ?? []);
+      setFritidActivities((frits as Activity[]) ?? []);
+      setAbsences((abs as Absence[]) ?? []);
+      setWeekStart(ws);
+      setLoading(false);
+    }).catch(() => setLoading(false));
   }, [targetWeekStart]);
 
   useEffect(() => {

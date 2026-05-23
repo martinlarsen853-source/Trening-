@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { NavBar } from './NavBar';
 import { WeatherWidget } from './WeatherWidget';
@@ -8,6 +9,12 @@ const AUTH_PATHS = ['/login', '/signup'];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+
+  useEffect(() => {
+    Object.keys(localStorage)
+      .filter(k => k.startsWith('sb-') && k.includes('-auth-token'))
+      .forEach(k => localStorage.removeItem(k));
+  }, []);
   const isAuth = AUTH_PATHS.includes(pathname);
 
   if (isAuth) return <>{children}</>;

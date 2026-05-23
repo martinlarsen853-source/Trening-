@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
 
 // Updated weekly by Martin — send new image to Claude to update
 const MEETINGS: { child: string; date: string; time: string; counselor: string }[] = [

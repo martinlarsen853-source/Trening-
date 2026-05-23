@@ -449,9 +449,10 @@ function FellesromMini() {
   const [checkins, setCheckins] = useState<RoomCheckin[]>([]);
 
   useEffect(() => {
-    fetch('/api/checkins')
-      .then(r => r.json())
-      .then(d => setCheckins((d.checkins ?? []).filter((c: RoomCheckin) => new Date(c.expires_at) > new Date())));
+    supabase.from('room_checkins').select('*')
+      .gt('expires_at', new Date().toISOString())
+      .order('checked_in_at')
+      .then(({ data }) => setCheckins((data ?? []) as RoomCheckin[]));
   }, []);
 
   useEffect(() => {
@@ -552,23 +553,28 @@ export function StatusDashboard() {
     });
   }, [isStaff]);
 
-  // Fetch activities + statuses in parallel (no waterfall)
+  // Fetch activities + statuses in parallel — direct Supabase queries, no serverless round-trip
   useEffect(() => {
     const today = cestDate().toISOString().slice(0, 10);
+    const ws = currentWeekStart();
+    const weDate = new Date(ws + 'T12:00:00');
+    weDate.setUTCDate(weDate.getUTCDate() + 6);
+    const we = weDate.toISOString().slice(0, 10);
     Promise.all([
-      fetch(`/api/activities?week=${currentWeekStart()}`).then(r => r.json()),
-      supabase.from('activity_status').select('*').eq('date', today).then(r => r.data ?? []),
+      supabase.from('activities').select('*').eq('is_fritid', false).gte('week_start', ws).lte('week_start', we).order('day_of_week').order('time_start'),
+      supabase.from('activities').select('*').eq('is_fritid', true).gte('week_start', ws).lte('week_start', we).order('day_of_week').order('time_start'),
+      supabase.from('activity_status').select('*').eq('date', today),
     ])
-      .then(([d, statusData]) => {
+      .then(([{ data: acts }, { data: frits }, { data: statusData }]) => {
         const dayOfWeek = todayDayOfWeek();
-        const all: Activity[] = [...(d.activities ?? []), ...(d.fritidActivities ?? [])];
+        const all: Activity[] = [...((acts as Activity[]) ?? []), ...((frits as Activity[]) ?? [])];
         const todayActs = all
           .filter(a => a.day_of_week === dayOfWeek)
           .filter(a => !a.target_child || a.target_child.toLowerCase() === childName.toLowerCase())
           .sort((a, b) => a.time_start.localeCompare(b.time_start));
         setActivities(todayActs);
         const map: Record<string, ActivityStatus> = {};
-        for (const s of (statusData as ActivityStatus[])) map[s.activity_id] = s;
+        for (const s of ((statusData as ActivityStatus[]) ?? [])) map[s.activity_id] = s;
         setStatuses(map);
         setLoading(false);
       })

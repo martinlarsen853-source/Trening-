@@ -17,7 +17,7 @@ export default function LoginPage() {
       password: 'admin2026',
     });
     setLoading(false);
-    if (err) { setError('Innlogging feilet – prøv igjen'); }
+    if (err) { setError(err.message); }
     else { router.replace('/'); }
   }
 

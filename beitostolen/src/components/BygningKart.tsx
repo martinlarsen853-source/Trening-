@@ -44,7 +44,30 @@ export function matchRoom(location: string | null): string | null {
   return null;
 }
 
-export function BygningKart({ location }: { location: string | null }) {
+// Approximate GPS bounds of the BHS building footprint (schematic, not surveyed)
+const GPS_BOUNDS = {
+  latN: 61.3007, latS: 61.2997,
+  lonW: 8.9291,  lonE: 8.9313,
+};
+// SVG canvas bounds (matches viewBox "0 -8 300 178")
+const SVG_X_MIN = 4, SVG_X_MAX = 296, SVG_Y_MIN = 4, SVG_Y_MAX = 170;
+
+export function gpsToSvg(lat: number, lon: number): { x: number; y: number } {
+  const x = SVG_X_MIN + ((lon - GPS_BOUNDS.lonW) / (GPS_BOUNDS.lonE - GPS_BOUNDS.lonW)) * (SVG_X_MAX - SVG_X_MIN);
+  const y = SVG_Y_MIN + ((GPS_BOUNDS.latN - lat) / (GPS_BOUNDS.latN - GPS_BOUNDS.latS)) * (SVG_Y_MAX - SVG_Y_MIN);
+  return {
+    x: Math.max(SVG_X_MIN, Math.min(SVG_X_MAX, x)),
+    y: Math.max(SVG_Y_MIN, Math.min(SVG_Y_MAX, y)),
+  };
+}
+
+export function BygningKart({
+  location,
+  ledsagerPos,
+}: {
+  location: string | null;
+  ledsagerPos?: { x: number; y: number } | null;
+}) {
   const activeId = matchRoom(location);
 
   return (
@@ -60,6 +83,18 @@ export function BygningKart({ location }: { location: string | null }) {
       <rect x="4" y="125" width="290" height="45" rx="5"
         fill="#f0fdf4" stroke="#bbf7d0" strokeWidth="1" strokeDasharray="4 3" />
       <text x="8" y="136" fontSize="6" fill="#86efac">Utendørs</text>
+
+      {/* Ledsager GPS-posisjon */}
+      {ledsagerPos && (
+        <g>
+          <circle cx={ledsagerPos.x} cy={ledsagerPos.y} r="9" fill="#22c55e" opacity="0.25">
+            <animate attributeName="r" values="9;14;9" dur="2s" repeatCount="indefinite" />
+            <animate attributeName="opacity" values="0.25;0.05;0.25" dur="2s" repeatCount="indefinite" />
+          </circle>
+          <circle cx={ledsagerPos.x} cy={ledsagerPos.y} r="5" fill="#22c55e" stroke="white" strokeWidth="1.5" />
+          <text x={ledsagerPos.x} y={ledsagerPos.y - 9} fontSize="6" textAnchor="middle" fill="#15803d" fontWeight="600">Du er her</text>
+        </g>
+      )}
 
       {/* Rom */}
       {ROOMS.map(room => {

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { supabase, type Activity } from '@/lib/supabase';
 import { DagsformWidget } from './DagsformWidget';
 import { MapPin, Clock, ChevronRight, Box } from 'lucide-react';
-import { BygningKart } from './BygningKart';
+import { BygningKart, gpsToSvg } from './BygningKart';
 import { format } from 'date-fns';
 import { nb } from 'date-fns/locale';
 
@@ -68,6 +68,21 @@ const TOUR_URL = 'https://bhss.adfectus.io/bundle/showcase.html?m=yPcBVhF91Z7&pl
 
 function MapModal({ activity, onClose }: { activity: Activity; onClose: () => void }) {
   const [show3d, setShow3d] = useState(false);
+  const [ledsagerPos, setLedsagerPos] = useState<{ x: number; y: number } | null>(null);
+  const [gpsStatus, setGpsStatus] = useState<'loading' | 'ok' | 'denied' | 'unsupported'>('loading');
+
+  useEffect(() => {
+    if (!navigator.geolocation) { setGpsStatus('unsupported'); return; }
+    const id = navigator.geolocation.watchPosition(
+      pos => {
+        setLedsagerPos(gpsToSvg(pos.coords.latitude, pos.coords.longitude));
+        setGpsStatus('ok');
+      },
+      () => setGpsStatus('denied'),
+      { enableHighAccuracy: true, timeout: 8000 },
+    );
+    return () => navigator.geolocation.clearWatch(id);
+  }, []);
 
   return (
     <div className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-sm flex items-end" onClick={onClose}>
@@ -104,12 +119,23 @@ function MapModal({ activity, onClose }: { activity: Activity; onClose: () => vo
         ) : (
           /* Oversiktskart */
           <div className="px-4 pb-4">
-            <div className="bg-blue-50 rounded-2xl p-3 mb-3">
-              <BygningKart location={activity.location} />
+            <div className="bg-blue-50 rounded-2xl p-3 mb-2">
+              <BygningKart location={activity.location} ledsagerPos={ledsagerPos} />
             </div>
-            <p className="text-xs text-gray-400 text-center mb-3">
-              Skjematisk oversikt — ikke i målestokk
-            </p>
+            <div className="flex items-center justify-center gap-1.5 mb-3">
+              {gpsStatus === 'loading' && (
+                <><div className="w-2 h-2 rounded-full bg-gray-300 animate-pulse" /><span className="text-xs text-gray-400">Henter posisjon…</span></>
+              )}
+              {gpsStatus === 'ok' && (
+                <><div className="w-2 h-2 rounded-full bg-green-500" /><span className="text-xs text-green-600">Posisjon oppdatert · unøyaktig innendørs</span></>
+              )}
+              {gpsStatus === 'denied' && (
+                <span className="text-xs text-gray-400">GPS ikke tilgjengelig</span>
+              )}
+              {gpsStatus === 'unsupported' && (
+                <span className="text-xs text-gray-400">Skjematisk oversikt — ikke i målestokk</span>
+              )}
+            </div>
             <button
               onClick={() => setShow3d(true)}
               className="w-full rounded-2xl bg-blue-600 text-white font-bold py-3 text-sm flex items-center justify-center gap-2 active:scale-95 transition-all"

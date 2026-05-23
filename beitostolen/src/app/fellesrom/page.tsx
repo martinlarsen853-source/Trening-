@@ -1,6 +1,10 @@
-import { CommonRoomsClient } from '@/components/CommonRoomsClient';
+'use client';
+import dynamic from 'next/dynamic';
 
-export const revalidate = 0;
+const CommonRoomsClient = dynamic(
+  () => import('@/components/CommonRoomsClient').then(m => ({ default: m.CommonRoomsClient })),
+  { ssr: false }
+);
 
 const ROOMS = ['Stue 400 gang', 'Felles rom 2C'];
 

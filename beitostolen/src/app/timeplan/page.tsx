@@ -1,5 +1,11 @@
-import { ScheduleGrid } from '@/components/ScheduleGrid';
+'use client';
+import dynamic from 'next/dynamic';
 import { WeatherForecast } from '@/components/WeatherForecast';
+
+const ScheduleGrid = dynamic(
+  () => import('@/components/ScheduleGrid').then(m => ({ default: m.ScheduleGrid })),
+  { ssr: false }
+);
 
 export default function TimeplanPage() {
   return (

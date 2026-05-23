@@ -1,4 +1,10 @@
-import { StatusDashboard } from '@/components/StatusDashboard';
+'use client';
+import dynamic from 'next/dynamic';
+
+const StatusDashboard = dynamic(
+  () => import('@/components/StatusDashboard').then(m => ({ default: m.StatusDashboard })),
+  { ssr: false }
+);
 
 export default function StatusPage() {
   return (

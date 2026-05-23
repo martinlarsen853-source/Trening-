@@ -51,10 +51,11 @@ export function ScheduleGrid() {
   );
 
   useEffect(() => {
-    // Get child name from Supabase Auth user metadata (v2-auth)
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const user = session?.user;
       const role = user?.user_metadata?.role as string | undefined;
-      const staff = role === 'staff';
+      const localLeder = localStorage.getItem('lederMode') === 'true';
+      const staff = role === 'staff' || localLeder;
       setIsStaff(staff);
       if (staff) setViewMode('leder');
 
@@ -63,6 +64,13 @@ export function ScheduleGrid() {
         const stored = localStorage.getItem('childName');
         if (stored) setChildName(stored);
       }
+      setAuthLoading(false);
+    }).catch(() => {
+      const localLeder = localStorage.getItem('lederMode') === 'true';
+      setIsStaff(localLeder);
+      if (localLeder) setViewMode('leder');
+      const stored = localStorage.getItem('childName');
+      if (stored) setChildName(stored);
       setAuthLoading(false);
     });
   }, []);

@@ -469,9 +469,11 @@ export function StatusDashboard() {
   }, []);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const user = session?.user;
       const role = user?.user_metadata?.role;
-      const staff = role === 'staff';
+      const localLeder = localStorage.getItem('lederMode') === 'true';
+      const staff = role === 'staff' || localLeder;
       setIsStaff(staff);
       if (staff) {
         setViewMode('leder');
@@ -482,6 +484,13 @@ export function StatusDashboard() {
         const stored = localStorage.getItem('childName');
         if (stored) setChildName(stored);
       }
+      setAuthLoading(false);
+    }).catch(() => {
+      const localLeder = localStorage.getItem('lederMode') === 'true';
+      setIsStaff(localLeder);
+      if (localLeder) setViewMode('leder');
+      const stored = localStorage.getItem('childName');
+      if (stored) setChildName(stored);
       setAuthLoading(false);
     });
   }, []);

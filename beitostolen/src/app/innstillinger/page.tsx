@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useTheme } from '@/components/ThemeProvider';
 
 function Toggle({ on, onToggle, label, description }: {
@@ -29,13 +30,24 @@ function Toggle({ on, onToggle, label, description }: {
 
 export default function InnstillingerPage() {
   const { dark, largeText, setDark, setLargeText } = useTheme();
+  const [lederMode, setLederMode] = useState(false);
+
+  useEffect(() => {
+    setLederMode(localStorage.getItem('lederMode') === 'true');
+  }, []);
+
+  function toggleLeder(on: boolean) {
+    setLederMode(on);
+    if (on) localStorage.setItem('lederMode', 'true');
+    else localStorage.removeItem('lederMode');
+  }
 
   return (
     <div className="px-4 pt-4 pb-8 max-w-lg mx-auto">
       <h2 className="text-xl font-bold text-gray-900 mb-1">Innstillinger</h2>
       <p className="text-sm text-gray-500 mb-6">Visning og tilgjengelighet</p>
 
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm px-4 divide-y divide-gray-100">
+      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm px-4 divide-y divide-gray-100 mb-4">
         <Toggle
           on={dark}
           onToggle={() => setDark(!dark)}
@@ -49,6 +61,21 @@ export default function InnstillingerPage() {
           description="Øker skriftstørrelsen i hele appen"
         />
       </div>
+
+      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">Tilgang</p>
+      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm px-4">
+        <Toggle
+          on={lederMode}
+          onToggle={() => toggleLeder(!lederMode)}
+          label="Leder-modus"
+          description="Aktiver redigering av aktiviteter, fremmøte og status"
+        />
+      </div>
+      {lederMode && (
+        <p className="text-xs text-amber-600 mt-2 px-1">
+          Leder-modus er aktiv — last siden på nytt for at det skal tre i kraft
+        </p>
+      )}
     </div>
   );
 }

@@ -37,11 +37,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <WeatherWidget />
           </div>
         </header>
-        <NavBar />
       </div>
-      <main className="pt-[160px] pb-8 min-h-screen">
+      <main className="pt-[110px] pb-28 min-h-screen">
         {children}
       </main>
+      <NavBar />
     </>
   );
 }

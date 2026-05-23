@@ -4,6 +4,7 @@ import { ServiceWorkerRegistrar } from '@/components/ServiceWorkerRegistrar';
 import { PushSubscriber } from '@/components/PushSubscriber';
 import { AuthGuard } from '@/components/AuthGuard';
 import { AppShell } from '@/components/AppShell';
+import { ThemeProvider } from '@/components/ThemeProvider';
 
 export const metadata: Metadata = {
   title: 'Beitostølen 2C',
@@ -23,9 +24,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-full bg-gray-50 text-gray-900 antialiased">
         <ServiceWorkerRegistrar />
         <PushSubscriber />
-        <AuthGuard>
-          <AppShell>{children}</AppShell>
-        </AuthGuard>
+        <ThemeProvider>
+          <AuthGuard>
+            <AppShell>{children}</AppShell>
+          </AuthGuard>
+        </ThemeProvider>
       </body>
     </html>
   );

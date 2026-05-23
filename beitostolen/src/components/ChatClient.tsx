@@ -23,15 +23,14 @@ export function ChatClient() {
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // Load user info from auth
+  // Load user info from localStorage (auth is disabled)
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      const meta = user.user_metadata;
-      setIsStaff(meta?.role === 'staff');
-      // Staff see their name, parents see their own name (ledsager)
-      setSenderName(meta?.role === 'staff' ? (meta?.parent_name ?? meta?.full_name ?? '') : (meta?.parent_name ?? ''));
-    });
+    const lederMode = localStorage.getItem('lederMode') === 'true';
+    setIsStaff(lederMode);
+    const name = lederMode
+      ? (localStorage.getItem('staffName') || 'Leder')
+      : (localStorage.getItem('parentName') || localStorage.getItem('childName') || '');
+    setSenderName(name);
   }, []);
 
   // Load messages for current tab

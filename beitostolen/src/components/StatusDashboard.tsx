@@ -399,6 +399,34 @@ function RestOfDay({ activities, statuses }: { activities: Activity[]; statuses:
   );
 }
 
+// ─── Name prompt (first visit / no name stored) ──────────────────────────────
+
+function NamePrompt({ onName }: { onName: (name: string) => void }) {
+  const [input, setInput] = useState('');
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[60vh] px-8">
+      <p className="text-4xl mb-4">👋</p>
+      <h2 className="text-xl font-black text-gray-900 mb-1">Hva heter barnet ditt?</h2>
+      <p className="text-sm text-gray-400 mb-6 text-center">Brukes til å vise riktig timeplan</p>
+      <input
+        value={input}
+        onChange={e => setInput(e.target.value)}
+        onKeyDown={e => e.key === 'Enter' && input.trim() && onName(input.trim())}
+        placeholder="Fornavn"
+        autoFocus
+        className="w-full max-w-xs border border-gray-200 rounded-2xl px-4 py-3 text-base outline-none focus:border-blue-400 mb-3 text-center"
+      />
+      <button
+        onClick={() => input.trim() && onName(input.trim())}
+        disabled={!input.trim()}
+        className="w-full max-w-xs py-3.5 rounded-2xl bg-blue-600 text-white font-black text-base disabled:opacity-30"
+      >
+        Fortsett
+      </button>
+    </div>
+  );
+}
+
 // ─── Main component ──────────────────────────────────────────────────────────
 
 export function StatusDashboard() {
@@ -509,7 +537,9 @@ export function StatusDashboard() {
       <div className="w-8 h-8 rounded-full border-2 border-blue-600 border-t-transparent animate-spin" />
     </div>
   );
-  if (!childName) return null;
+
+  // No name set yet — show inline prompt
+  if (!childName) return <NamePrompt onName={n => { localStorage.setItem('childName', n); setChildName(n); }} />;
 
   const mins = nowMins();
   const current = activities.find(a => toMins(a.time_start) <= mins && toMins(a.time_end) >= mins) ?? null;

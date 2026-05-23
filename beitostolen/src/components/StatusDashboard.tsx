@@ -6,6 +6,7 @@ import { StaffAvatar } from './StaffAvatar';
 import { DagsformWidget } from './DagsformWidget';
 import { ActivityEditModal } from './ActivityEditModal';
 import { ChildAdaptations } from './ChildAdaptations';
+import { AttendanceModal, AttendanceBadge } from './AttendanceModal';
 import { MapPin, Clock, ChevronRight, Box } from 'lucide-react';
 import { BygningKart, gpsToSvg } from './BygningKart';
 import { format } from 'date-fns';
@@ -258,10 +259,11 @@ function MapModal({ activity, onClose }: { activity: Activity; onClose: () => vo
 
 // ─── Current activity (large hero card) ─────────────────────────────────────
 
-function NowCard({ activity, liveStatus, staffMember, onMap, onEditStatus, onEdit }: {
+function NowCard({ activity, liveStatus, staffMember, date, onMap, onEditStatus, onEdit, onAttendance }: {
   activity: Activity; liveStatus: ActivityStatus | null;
   staffMember: StaffMember | null;
-  onMap: () => void; onEditStatus?: () => void; onEdit?: () => void;
+  date: string;
+  onMap: () => void; onEditStatus?: () => void; onEdit?: () => void; onAttendance?: () => void;
 }) {
   const remaining = formatRemaining(activity.time_end);
   const load = activity.load_level ? LOAD[activity.load_level] : null;
@@ -285,8 +287,12 @@ function NowCard({ activity, liveStatus, staffMember, onMap, onEditStatus, onEdi
           {load && !liveStatus && (
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${load.bg} ${load.text}`}>{load.label}</span>
           )}
+          {onAttendance && <AttendanceBadge activityId={activity.id} date={date} />}
           {onEdit && (
             <button onClick={onEdit} className="text-white/60 hover:text-white text-xs font-semibold px-2 py-0.5 rounded-full bg-white/10">Rediger</button>
+          )}
+          {onAttendance && (
+            <button onClick={onAttendance} className="text-white/60 hover:text-white text-xs font-semibold px-2 py-0.5 rounded-full bg-white/10">Fremmøte</button>
           )}
           {onEditStatus && (
             <button onClick={onEditStatus} className="text-white/60 hover:text-white text-lg leading-none w-6 h-6 flex items-center justify-center">⋯</button>
@@ -443,6 +449,7 @@ export function StatusDashboard() {
   const [mapActivity, setMapActivity] = useState<Activity | null>(null);
   const [editStatusActivity, setEditStatusActivity] = useState<Activity | null>(null);
   const [editActivity, setEditActivity] = useState<Activity | null>(null);
+  const [attendanceActivity, setAttendanceActivity] = useState<Activity | null>(null);
 
   // Fetch staff lookup
   useEffect(() => {
@@ -541,6 +548,7 @@ export function StatusDashboard() {
   // No name set yet — show inline prompt
   if (!childName) return <NamePrompt onName={n => { localStorage.setItem('childName', n); setChildName(n); }} />;
 
+  const today = new Date(Date.now() + 2 * 3_600_000).toISOString().slice(0, 10);
   const mins = nowMins();
   const current = activities.find(a => toMins(a.time_start) <= mins && toMins(a.time_end) >= mins) ?? null;
   const upcoming = activities.filter(a => toMins(a.time_start) > mins);
@@ -595,8 +603,10 @@ export function StatusDashboard() {
               activity={current}
               liveStatus={statuses[current.id] ?? null}
               staffMember={current.staff_id ? (staffMap[current.staff_id] ?? null) : null}
+              date={today}
               onMap={() => setMapActivity(current)}
               onEdit={isStaff && viewMode === 'leder' ? () => setEditActivity(current) : undefined}
+              onAttendance={isStaff && viewMode === 'leder' ? () => setAttendanceActivity(current) : undefined}
               onEditStatus={isStaff && viewMode === 'leder' ? () => setEditStatusActivity(current) : undefined}
             />
           </>
@@ -670,9 +680,19 @@ export function StatusDashboard() {
           current={statuses[editStatusActivity.id]?.status ?? null}
           note={statuses[editStatusActivity.id]?.note ?? null}
           staffName={staffName}
-          date={new Date(Date.now() + 2 * 3_600_000).toISOString().slice(0, 10)}
+          date={today}
           onSave={s => setStatuses(prev => ({ ...prev, [s.activity_id]: s }))}
           onClose={() => setEditStatusActivity(null)}
+        />
+      )}
+
+      {/* Fremmøte (leder) */}
+      {attendanceActivity && (
+        <AttendanceModal
+          activity={attendanceActivity}
+          date={today}
+          markedBy={staffName}
+          onClose={() => setAttendanceActivity(null)}
         />
       )}
     </div>

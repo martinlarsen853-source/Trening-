@@ -66,6 +66,16 @@ export type DailyCheckin = {
   registered_at: string;
 };
 
+export type Attendance = {
+  id: string;
+  activity_id: string;
+  date: string;
+  child_name: string;
+  present: boolean;
+  marked_at: string;
+  marked_by: string | null;
+};
+
 export type Absence = {
   id: string;
   activity_id: string;

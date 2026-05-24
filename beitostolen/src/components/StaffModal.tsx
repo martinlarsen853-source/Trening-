@@ -117,7 +117,7 @@ export function StaffModal({
             >
               {uploading ? 'Leser bilde…' : 'Velg bilde'}
             </button>
-            <p className="text-xs text-gray-400 mt-1">JPG eller PNG, maks 5 MB</p>
+            <p className="text-xs text-gray-400 mt-1">Velg et bilde — skaleres automatisk</p>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
           </div>
         </div>

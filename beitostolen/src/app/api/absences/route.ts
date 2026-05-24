@@ -40,3 +40,17 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ absence });
 }
+
+export async function DELETE(req: NextRequest) {
+  const { activity_id, child_name } = await req.json();
+  if (!activity_id || !child_name) {
+    return NextResponse.json({ error: 'Mangler felt' }, { status: 400 });
+  }
+  const supabase = getSupabase();
+  const { error } = await supabase
+    .from('absences')
+    .delete()
+    .match({ activity_id, child_name });
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ ok: true });
+}

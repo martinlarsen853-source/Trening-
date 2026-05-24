@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase, type Activity, type StaffMember, type TimeplanActivity } from '@/lib/supabase';
+import { type Activity, type StaffMember, type TimeplanActivity } from '@/lib/supabase';
 import { StaffAvatar } from './StaffAvatar';
 import { X } from 'lucide-react';
 
@@ -30,15 +30,11 @@ export function ActivityEditModal({
   // Keep staffList in sync if allStaff prop changes (e.g. parent fetches later)
   useEffect(() => { setStaffList(allStaff); }, [allStaff]);
 
-  // Load current staff assignments
+  // Load current staff assignments (server-side to avoid client CORS issues)
   useEffect(() => {
-    supabase
-      .from('activity_staff')
-      .select('staff_id')
-      .eq('activity_id', activity.id)
-      .then(({ data }) => {
-        if (data) setSelected(new Set(data.map(r => r.staff_id)));
-      });
+    fetch(`/api/activities/${activity.id}/staff`)
+      .then(r => r.json())
+      .then(d => { if (d.staffIds) setSelected(new Set(d.staffIds as string[])); });
   }, [activity.id]);
 
   function toggle(id: string) {
@@ -51,13 +47,11 @@ export function ActivityEditModal({
 
   async function save() {
     setSaving(true);
-    await supabase.from('activities').update({ load_level: loadLevel }).eq('id', activity.id);
-    await supabase.from('activity_staff').delete().eq('activity_id', activity.id);
-    if (selected.size > 0) {
-      await supabase.from('activity_staff').insert(
-        [...selected].map(staff_id => ({ activity_id: activity.id, staff_id }))
-      );
-    }
+    await fetch(`/api/activities/${activity.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ load_level: loadLevel, staffIds: [...selected] }),
+    });
     setSaving(false);
     onSaved({ load_level: loadLevel, staffIds: [...selected] });
     onClose();

@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { supabase, type StaffMember } from '@/lib/supabase';
+import type { StaffMember } from '@/lib/supabase';
 import { StaffAvatar } from './StaffAvatar';
 import { X } from 'lucide-react';
 
@@ -16,48 +16,66 @@ export function StaffModal({
 }) {
   const [name, setName] = useState(member?.name ?? '');
   const [title, setTitle] = useState(member?.title ?? '');
-  const [photoUrl, setPhotoUrl] = useState(member?.photo_url ?? '');
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(member?.photo_url ?? null);
+  // photo stored as base64 + extension to send to server
+  const [photoBase64, setPhotoBase64] = useState<string | null>(null);
+  const [photoExt, setPhotoExt] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
+    const ext = (file.name.split('.').pop() ?? 'jpg').toLowerCase();
+    setPhotoExt(ext);
     const reader = new FileReader();
-    reader.onload = ev => setPreview(ev.target?.result as string);
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      setPreview(dataUrl);
+      // strip "data:image/...;base64," prefix
+      const base64 = dataUrl.split(',')[1];
+      setPhotoBase64(base64);
+      setUploading(false);
+    };
     reader.readAsDataURL(file);
-    const ext = file.name.split('.').pop();
-    const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-    const { error } = await supabase.storage.from('staff-photos').upload(path, file, { upsert: true });
-    if (!error) {
-      const url = supabase.storage.from('staff-photos').getPublicUrl(path).data.publicUrl;
-      setPhotoUrl(url);
-    }
-    setUploading(false);
   }
 
   async function save() {
     if (!name.trim()) return;
     setError(null);
     setSaving(true);
-    const payload = { name: name.trim(), title: title.trim() || null, photo_url: photoUrl || null };
-    let result;
-    if (member) {
-      result = await supabase.from('staff').update(payload).eq('id', member.id).select().single();
-    } else {
-      result = await supabase.from('staff').insert(payload).select().single();
+
+    const id = member?.id ?? crypto.randomUUID();
+    const body = {
+      id,
+      name: name.trim(),
+      title: title.trim() || null,
+      photoBase64: photoBase64 ?? undefined,
+      photoExt: photoExt ?? undefined,
+      existingPhotoUrl: member?.photo_url ?? undefined,
+    };
+
+    try {
+      const res = await fetch('/api/staff', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setError(json.error ?? 'Ukjent feil — prøv igjen');
+        setSaving(false);
+        return;
+      }
+      onSaved(json.staff as StaffMember);
+      onClose();
+    } catch (err) {
+      setError('Nettverksfeil — sjekk tilkoblingen');
+      setSaving(false);
     }
-    setSaving(false);
-    if (result.error || !result.data) {
-      setError(result.error?.message ?? 'Ukjent feil — prøv igjen');
-      return;
-    }
-    onSaved(result.data as StaffMember);
-    onClose();
   }
 
   return (
@@ -88,7 +106,7 @@ export function StaffModal({
               disabled={uploading}
               className="px-4 py-2 rounded-2xl bg-blue-50 text-blue-600 font-semibold text-sm disabled:opacity-50"
             >
-              {uploading ? 'Laster opp…' : 'Velg bilde'}
+              {uploading ? 'Leser bilde…' : 'Velg bilde'}
             </button>
             <p className="text-xs text-gray-400 mt-1">JPG eller PNG, maks 5 MB</p>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />

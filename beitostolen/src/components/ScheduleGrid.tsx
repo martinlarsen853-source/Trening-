@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase, type TimeplanActivity, type TimeplanDay, type StaffMember } from '@/lib/supabase';
+import { type TimeplanActivity, type TimeplanDay, type StaffMember } from '@/lib/supabase';
 import { STATIC_WEEKS } from '@/data/timeplan';
 import { ActivityCard } from './ActivityCard';
 import { AbsenceModal } from './AbsenceModal';
@@ -64,8 +64,9 @@ export function ScheduleGrid() {
 
   useEffect(() => {
     if (!isStaff) return;
-    supabase.from('staff').select('*').order('sort_order').order('name')
-      .then(({ data }) => setStaff((data ?? []) as StaffMember[]));
+    fetch('/api/staff')
+      .then(r => r.json())
+      .then(d => setStaff(d.staff ?? []));
   }, [isStaff]);
 
   useEffect(() => {
@@ -149,9 +150,17 @@ export function ScheduleGrid() {
     })));
 
     if (currentAbsence) {
-      await supabase.from('absences').delete().match({ activity_id: activityId, child_name: cn });
+      await fetch('/api/absences', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ activity_id: activityId, child_name: cn }),
+      });
     } else {
-      await supabase.from('absences').insert({ activity_id: activityId, child_name: cn });
+      await fetch('/api/absences', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ activity_id: activityId, child_name: cn }),
+      });
     }
 
     // Invalidate cache so next load re-fetches fresh myAbsence values

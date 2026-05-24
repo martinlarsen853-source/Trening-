@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase, type StaffMember } from '@/lib/supabase';
+import type { StaffMember } from '@/lib/supabase';
 import { StaffAvatar } from '@/components/StaffAvatar';
 import { StaffModal } from '@/components/StaffModal';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
@@ -12,12 +12,17 @@ export default function AnsattePage() {
   const [modal, setModal] = useState<StaffMember | null | 'new'>(null);
 
   useEffect(() => {
-    supabase.from('staff').select('*').order('sort_order').order('name')
-      .then(({ data }) => { setStaff((data ?? []) as StaffMember[]); setLoading(false); });
+    fetch('/api/staff')
+      .then(r => r.json())
+      .then(d => { setStaff(d.staff ?? []); setLoading(false); });
   }, []);
 
   async function deleteStaff(id: string) {
-    await supabase.from('staff').delete().eq('id', id);
+    await fetch('/api/staff', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    });
     setStaff(prev => prev.filter(s => s.id !== id));
   }
 

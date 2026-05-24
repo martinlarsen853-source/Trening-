@@ -290,7 +290,11 @@ export function ScheduleGrid() {
 
       {/* Main activities + meals */}
       <div className="px-4 pt-2 flex flex-col gap-2.5">
-        {!loading && mainList.length === 0 ? (
+        {loading ? (
+          [...Array(3)].map((_, i) => (
+            <div key={i} className="h-20 rounded-3xl bg-gray-100 animate-pulse" />
+          ))
+        ) : mainList.length === 0 ? (
           <EmptyDay />
         ) : (
           mainList.map((item, i) =>

@@ -66,9 +66,26 @@ export function ScheduleGrid() {
   }, []);
 
   useEffect(() => {
-    setLoading(true);
     const ws = targetWeekStart;
     const we = format(addDays(new Date(ws + 'T12:00:00'), 6), 'yyyy-MM-dd');
+
+    // Show cached week immediately — no spinner on repeat visits
+    try {
+      const raw = localStorage.getItem(`sg_week_${ws}`);
+      if (raw) {
+        const { acts, frits, abs } = JSON.parse(raw);
+        setActivities(acts);
+        setFritidActivities(frits);
+        setAbsences(abs);
+        setWeekStart(ws);
+        setLoading(false);
+      } else {
+        setLoading(true);
+      }
+    } catch {
+      setLoading(true);
+    }
+
     Promise.all([
       supabase.from('activities').select('*').eq('is_fritid', false)
         .gte('week_start', ws).lte('week_start', we)
@@ -78,11 +95,15 @@ export function ScheduleGrid() {
         .order('day_of_week').order('time_start'),
       supabase.from('absences').select('*').gte('registered_at', ws),
     ]).then(([{ data: acts }, { data: frits }, { data: abs }]) => {
-      setActivities((acts as Activity[]) ?? []);
-      setFritidActivities((frits as Activity[]) ?? []);
-      setAbsences((abs as Absence[]) ?? []);
+      const a = (acts as Activity[]) ?? [];
+      const f = (frits as Activity[]) ?? [];
+      const ab = (abs as Absence[]) ?? [];
+      setActivities(a);
+      setFritidActivities(f);
+      setAbsences(ab);
       setWeekStart(ws);
       setLoading(false);
+      try { localStorage.setItem(`sg_week_${ws}`, JSON.stringify({ acts: a, frits: f, abs: ab })); } catch {}
     }).catch(() => setLoading(false));
   }, [targetWeekStart]);
 

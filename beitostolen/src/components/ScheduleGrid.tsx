@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase, type TimeplanActivity, type TimeplanDay } from '@/lib/supabase';
+import { STATIC_WEEKS } from '@/data/timeplan';
 import { ActivityCard } from './ActivityCard';
 import { AbsenceModal } from './AbsenceModal';
 import { format, addDays, addWeeks, startOfWeek } from 'date-fns';
@@ -63,24 +64,50 @@ export function ScheduleGrid() {
     const cn = childName ?? '';
     const cacheKey = `sg_week_${ws}_${cn}`;
 
-    try {
-      const raw = localStorage.getItem(cacheKey);
-      if (raw) {
-        setDays(JSON.parse(raw));
-        setLoading(false);
-      } else {
+    // 1. Static data → instant render, no loading spinner
+    const staticDays = STATIC_WEEKS[ws];
+    if (staticDays) {
+      setDays(staticDays);
+      setLoading(false);
+    } else {
+      // Fallback: try localStorage cache, then show spinner
+      try {
+        const raw = localStorage.getItem(cacheKey);
+        if (raw) {
+          setDays(JSON.parse(raw));
+          setLoading(false);
+        } else {
+          setLoading(true);
+        }
+      } catch {
         setLoading(true);
       }
-    } catch {
-      setLoading(true);
     }
 
+    // 2. Fetch absence overlay in background (non-blocking)
     fetch(`/api/timeplan?week=${ws}&childName=${encodeURIComponent(cn)}`)
       .then((r) => r.json())
       .then((d) => {
         const fetched: TimeplanDay[] = d.days ?? [];
-        setDays(fetched);
-        setLoading(false);
+        if (staticDays) {
+          // Merge only the dynamic fields into the static structure
+          const dynMap = new Map<string, Pick<TimeplanActivity, 'myAbsence' | 'relevantAbsences'>>();
+          for (const day of fetched) {
+            for (const act of [...day.main, ...day.fritid]) {
+              dynMap.set(act.id, { myAbsence: act.myAbsence, relevantAbsences: act.relevantAbsences });
+            }
+          }
+          setDays((prev) => prev.map((day) => {
+            const patch = (act: TimeplanActivity) => {
+              const dyn = dynMap.get(act.id);
+              return dyn ? { ...act, ...dyn } : act;
+            };
+            return { ...day, main: day.main.map(patch), fritid: day.fritid.map(patch) };
+          }));
+        } else {
+          setDays(fetched);
+          setLoading(false);
+        }
         try { localStorage.setItem(cacheKey, JSON.stringify(fetched)); } catch {}
       })
       .catch(() => setLoading(false));

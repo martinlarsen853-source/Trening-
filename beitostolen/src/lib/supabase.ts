@@ -118,6 +118,7 @@ export type TimeplanActivity = {
   load_level: 'lav' | 'middels' | 'høy' | null;
   staff_name: string | null;
   staff_id: string | null;
+  staff: { id: string; name: string; photo_url: string | null }[];
   myAbsence: boolean;
   relevantAbsences: string[];
 };

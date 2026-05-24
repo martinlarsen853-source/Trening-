@@ -1,6 +1,7 @@
 'use client';
 
 import type { TimeplanActivity } from '@/lib/supabase';
+import { StaffAvatar } from './StaffAvatar';
 import { ChevronRight, Pencil } from 'lucide-react';
 
 type Props = {
@@ -76,12 +77,14 @@ export function ActivityCard({ activity, myAbsence, relevantAbsences, onClick, o
             {activity.location && (
               <p className="text-sm text-gray-500 mt-0.5">{activity.location}</p>
             )}
-            {activity.staff_name && (
-              <div className="flex items-center gap-1.5 mt-1.5">
-                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center text-[9px] font-bold text-indigo-700">
-                  {activity.staff_name.trim().split(/\s+/).map((n) => n[0]).join('').toUpperCase().slice(0, 2)}
-                </span>
-                <span className="text-xs text-indigo-700 font-medium">{activity.staff_name}</span>
+            {activity.staff.length > 0 && (
+              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                {activity.staff.map((s) => (
+                  <div key={s.id} className="flex items-center gap-1">
+                    <StaffAvatar name={s.name} photoUrl={s.photo_url} size="sm" />
+                    <span className="text-xs text-gray-600 font-medium">{s.name.split(' ')[0]}</span>
+                  </div>
+                ))}
               </div>
             )}
             {activity.notes && (

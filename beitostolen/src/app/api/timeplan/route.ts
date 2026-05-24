@@ -25,7 +25,12 @@ export async function GET(req: NextRequest) {
   const [{ data: acts }, { data: abs }] = await Promise.all([
     supabase
       .from('activities')
-      .select('id,name,location,notes,time_start,time_end,day_of_week,group_name,target_child,is_adult_meeting,load_level,staff_name,staff_id,is_fritid')
+      .select(`
+        id,name,location,notes,time_start,time_end,day_of_week,
+        group_name,target_child,is_adult_meeting,load_level,
+        staff_name,staff_id,is_fritid,
+        activity_staff(staff_id, staff:staff_id(id,name,photo_url))
+      `)
       .gte('week_start', week)
       .lte('week_start', weekEnd)
       .order('day_of_week')
@@ -48,6 +53,9 @@ export async function GET(req: NextRequest) {
   for (const act of (acts ?? [])) {
     if (!dayMap.has(act.day_of_week)) dayMap.set(act.day_of_week, { main: [], fritid: [] });
     const relevantAbsences = absMap.get(act.id) ?? [];
+    const staff = ((act.activity_staff ?? []) as unknown as { staff: { id: string; name: string; photo_url: string | null } | null }[])
+      .filter(r => r.staff != null)
+      .map(r => r.staff!);
     const item = {
       id: act.id,
       name: act.name,
@@ -62,6 +70,7 @@ export async function GET(req: NextRequest) {
       load_level: act.load_level,
       staff_name: act.staff_name,
       staff_id: act.staff_id,
+      staff,
       myAbsence: childName ? relevantAbsences.map(n => n.toLowerCase()).includes(childName) : false,
       relevantAbsences,
     };

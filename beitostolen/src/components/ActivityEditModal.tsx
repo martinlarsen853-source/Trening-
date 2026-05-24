@@ -3,8 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase, type Activity, type StaffMember, type TimeplanActivity } from '@/lib/supabase';
 import { StaffAvatar } from './StaffAvatar';
-import { StaffModal } from './StaffModal';
-import { Plus, X } from 'lucide-react';
+import { X } from 'lucide-react';
 
 const LOAD_OPTIONS = [
   { value: 'lav',     label: 'Lav',     bg: 'bg-green-500', ring: 'ring-green-400' },
@@ -27,7 +26,6 @@ export function ActivityEditModal({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [loadLevel, setLoadLevel] = useState<Activity['load_level']>(activity.load_level);
   const [saving, setSaving] = useState(false);
-  const [addingStaff, setAddingStaff] = useState(false);
 
   // Keep staffList in sync if allStaff prop changes (e.g. parent fetches later)
   useEffect(() => { setStaffList(allStaff); }, [allStaff]);
@@ -49,11 +47,6 @@ export function ActivityEditModal({
       if (n.has(id)) n.delete(id); else n.add(id);
       return n;
     });
-  }
-
-  function onStaffAdded(s: StaffMember) {
-    setStaffList(prev => [...prev, s]);
-    setSelected(prev => new Set([...prev, s.id]));
   }
 
   async function save() {
@@ -113,15 +106,8 @@ export function ActivityEditModal({
 
             {/* Staff selection */}
             <div>
-              <div className="flex items-center justify-between mb-3">
+              <div className="mb-3">
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Hvem leder timen?</p>
-                <button
-                  onClick={() => setAddingStaff(true)}
-                  className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-blue-50 text-blue-600 text-xs font-bold"
-                >
-                  <Plus size={12} />
-                  Ny ansatt
-                </button>
               </div>
 
               {staffList.length === 0 ? (
@@ -172,13 +158,6 @@ export function ActivityEditModal({
         </div>
       </div>
 
-      {addingStaff && (
-        <StaffModal
-          member={null}
-          onClose={() => setAddingStaff(false)}
-          onSaved={onStaffAdded}
-        />
-      )}
     </>
   );
 }

@@ -100,10 +100,10 @@ export function ScheduleGrid() {
         const fetched: TimeplanDay[] = d.days ?? [];
         if (staticDays) {
           // Merge only the dynamic fields into the static structure
-          const dynMap = new Map<string, Pick<TimeplanActivity, 'myAbsence' | 'relevantAbsences'>>();
+          const dynMap = new Map<string, Pick<TimeplanActivity, 'myAbsence' | 'relevantAbsences' | 'staff'>>();
           for (const day of fetched) {
             for (const act of [...day.main, ...day.fritid]) {
-              dynMap.set(act.id, { myAbsence: act.myAbsence, relevantAbsences: act.relevantAbsences });
+              dynMap.set(act.id, { myAbsence: act.myAbsence, relevantAbsences: act.relevantAbsences, staff: act.staff });
             }
           }
           setDays((prev) => prev.map((day) => {
@@ -409,10 +409,14 @@ export function ScheduleGrid() {
           onSaved={({ load_level, staffIds }) => {
             const staffId = staffIds[0] ?? null;
             const staffMember = staff.find((s) => s.id === staffId);
+            const updatedStaff = staffIds
+              .map((id) => staff.find((s) => s.id === id))
+              .filter((s): s is StaffMember => s != null)
+              .map((s) => ({ id: s.id, name: s.name, photo_url: s.photo_url }));
             setDays((prev) => prev.map((day) => {
               const patch = (a: TimeplanActivity) =>
                 a.id === editActivity.id
-                  ? { ...a, load_level, staff_id: staffId, staff_name: staffMember?.name ?? null }
+                  ? { ...a, load_level, staff_id: staffId, staff_name: staffMember?.name ?? null, staff: updatedStaff }
                   : a;
               return { ...day, main: day.main.map(patch), fritid: day.fritid.map(patch) };
             }));

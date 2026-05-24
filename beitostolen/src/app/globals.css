@@ -3,6 +3,12 @@
 /* Enable class-based dark mode */
 @variant dark (&:where(.dark, .dark *));
 
+@keyframes map-pulse {
+  0%, 100% { opacity: 0.55; }
+  50%       { opacity: 0.85; }
+}
+.map-highlight { animation: map-pulse 1.6s ease-in-out infinite; }
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-tap-highlight-color: transparent;

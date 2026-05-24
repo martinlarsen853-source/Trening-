@@ -10,9 +10,10 @@ type Props = {
   relevantAbsences: string[];
   onClick: () => void;
   onEdit?: () => void;
+  onStaffClick?: (staff: { id: string; name: string; photo_url: string | null }) => void;
 };
 
-export function ActivityCard({ activity, myAbsence, relevantAbsences, onClick, onEdit }: Props) {
+export function ActivityCard({ activity, myAbsence, relevantAbsences, onClick, onEdit, onStaffClick }: Props) {
   return (
     <div className="relative">
       <button
@@ -80,7 +81,11 @@ export function ActivityCard({ activity, myAbsence, relevantAbsences, onClick, o
             {activity.staff.length > 0 && (
               <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                 {activity.staff.map((s) => (
-                  <div key={s.id} className="flex items-center gap-1">
+                  <div
+                    key={s.id}
+                    className="flex items-center gap-1"
+                    onClick={onStaffClick ? (e) => { e.stopPropagation(); e.preventDefault(); onStaffClick(s); } : undefined}
+                  >
                     <StaffAvatar name={s.name} photoUrl={s.photo_url} size="sm" />
                     <span className="text-xs text-gray-600 font-medium">{s.name.split(' ')[0]}</span>
                   </div>

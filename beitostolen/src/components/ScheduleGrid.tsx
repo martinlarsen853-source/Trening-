@@ -6,9 +6,10 @@ import { STATIC_WEEKS } from '@/data/timeplan';
 import { ActivityCard } from './ActivityCard';
 import { AbsenceModal } from './AbsenceModal';
 import { ActivityEditModal } from './ActivityEditModal';
+import { StaffAvatar } from './StaffAvatar';
 import { format, addDays, addWeeks, startOfWeek } from 'date-fns';
 import { nb } from 'date-fns/locale';
-import { Utensils, MessageCircle, Pencil } from 'lucide-react';
+import { Utensils, MessageCircle, Pencil, X } from 'lucide-react';
 
 const DAYS = ['Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør', 'Søn'];
 
@@ -45,6 +46,7 @@ export function ScheduleGrid() {
   );
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [editActivity, setEditActivity] = useState<TimeplanActivity | null>(null);
+  const [expandedStaff, setExpandedStaff] = useState<{ id: string; name: string; photo_url: string | null } | null>(null);
   const [viewMode, setViewMode] = useState<'leder' | 'ledsager'>(() =>
     typeof window !== 'undefined' && localStorage.getItem('lederMode') === 'true' ? 'leder' : 'ledsager'
   );
@@ -357,6 +359,7 @@ export function ScheduleGrid() {
                 relevantAbsences={item.data.relevantAbsences}
                 onClick={() => setSelected(item.data)}
                 onEdit={isStaff ? () => setEditActivity(item.data) : undefined}
+                onStaffClick={setExpandedStaff}
               />
             )
           )
@@ -389,6 +392,7 @@ export function ScheduleGrid() {
                   relevantAbsences={activity.relevantAbsences}
                   onClick={() => setSelected(activity)}
                   onEdit={isStaff ? () => setEditActivity(activity) : undefined}
+                  onStaffClick={setExpandedStaff}
                 />
               ))
             )}
@@ -409,6 +413,29 @@ export function ScheduleGrid() {
           isStaff={isStaff}
           onEdit={() => { setEditActivity(selected); setSelected(null); }}
         />
+      )}
+
+      {expandedStaff && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-6"
+          onClick={() => setExpandedStaff(null)}
+        >
+          <div
+            className="bg-white rounded-3xl shadow-2xl w-full max-w-xs flex flex-col items-center py-10 px-8 gap-5 relative"
+            onClick={e => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setExpandedStaff(null)}
+              className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100"
+            >
+              <X size={16} className="text-gray-500" />
+            </button>
+            <StaffAvatar name={expandedStaff.name} photoUrl={expandedStaff.photo_url} size="2xl" />
+            <div className="text-center">
+              <p className="text-2xl font-bold text-gray-900 leading-tight">{expandedStaff.name}</p>
+            </div>
+          </div>
+        </div>
       )}
 
       {editActivity && (

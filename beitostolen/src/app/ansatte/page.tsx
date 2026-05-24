@@ -135,12 +135,9 @@ function StaffModal({
 export default function AnsattePage() {
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isStaff, setIsStaff] = useState(false);
-  const [editing, setEditing] = useState<StaffMember | null | 'new'>('new' as const);
   const [modal, setModal] = useState<StaffMember | null | 'new'>(null);
 
   useEffect(() => {
-    setIsStaff(localStorage.getItem('lederMode') === 'true');
     supabase.from('staff').select('*').order('sort_order').order('name')
       .then(({ data }) => { setStaff((data ?? []) as StaffMember[]); setLoading(false); });
   }, []);
@@ -162,15 +159,13 @@ export default function AnsattePage() {
     <div className="px-4 pt-4 pb-8 max-w-lg mx-auto">
       <div className="flex items-center justify-between mb-1">
         <h2 className="text-xl font-bold text-gray-900">Ansatte</h2>
-        {isStaff && (
-          <button
-            onClick={() => setModal('new')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-blue-600 text-white text-sm font-bold"
-          >
-            <Plus size={14} />
-            Legg til
-          </button>
-        )}
+        <button
+          onClick={() => setModal('new')}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-blue-600 text-white text-sm font-bold"
+        >
+          <Plus size={14} />
+          Legg til
+        </button>
       </div>
       <p className="text-sm text-gray-400 mb-5">Ledere, studenter og fagpersoner</p>
 
@@ -182,7 +177,7 @@ export default function AnsattePage() {
         <div className="text-center py-12 text-gray-400">
           <p className="text-4xl mb-3">👤</p>
           <p className="font-medium">Ingen ansatte lagt til ennå</p>
-          {isStaff && <p className="text-sm mt-1">Trykk «Legg til» for å starte</p>}
+          <p className="text-sm mt-1">Trykk «Legg til» for å starte</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -193,16 +188,14 @@ export default function AnsattePage() {
                 <p className="font-bold text-gray-900">{s.name}</p>
                 {s.title && <p className="text-sm text-gray-500">{s.title}</p>}
               </div>
-              {isStaff && (
-                <div className="flex items-center gap-1">
-                  <button onClick={() => setModal(s)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100">
-                    <Pencil size={14} className="text-gray-400" />
-                  </button>
-                  <button onClick={() => deleteStaff(s.id)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-50">
-                    <Trash2 size={14} className="text-red-400" />
-                  </button>
-                </div>
-              )}
+              <div className="flex items-center gap-1">
+                <button onClick={() => setModal(s)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100">
+                  <Pencil size={14} className="text-gray-400" />
+                </button>
+                <button onClick={() => deleteStaff(s.id)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-50">
+                  <Trash2 size={14} className="text-red-400" />
+                </button>
+              </div>
             </div>
           ))}
         </div>

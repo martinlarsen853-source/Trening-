@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase, type Activity, type StaffMember } from '@/lib/supabase';
+import { supabase, type Activity, type StaffMember, type TimeplanActivity } from '@/lib/supabase';
 import { StaffAvatar } from './StaffAvatar';
 import { X } from 'lucide-react';
 
@@ -17,7 +17,7 @@ export function ActivityEditModal({
   onClose,
   onSaved,
 }: {
-  activity: Activity;
+  activity: Pick<Activity | TimeplanActivity, 'id' | 'name' | 'time_start' | 'time_end' | 'load_level'>;
   allStaff: StaffMember[];
   onClose: () => void;
   onSaved: (updates: { load_level: Activity['load_level']; staffIds: string[] }) => void;
@@ -65,7 +65,7 @@ export function ActivityEditModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[300] bg-black/70 backdrop-blur-sm flex items-end" onClick={onClose}>
+    <div className="fixed inset-0 z-[1000] bg-black/70 backdrop-blur-sm flex items-end" onClick={onClose}>
       <div
         className="w-full bg-white rounded-t-3xl max-w-lg mx-auto overflow-y-auto"
         style={{ maxHeight: '85vh' }}

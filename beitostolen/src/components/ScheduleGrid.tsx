@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase, type TimeplanActivity, type TimeplanDay } from '@/lib/supabase';
+import { supabase, type TimeplanActivity, type TimeplanDay, type StaffMember } from '@/lib/supabase';
 import { STATIC_WEEKS } from '@/data/timeplan';
 import { ActivityCard } from './ActivityCard';
 import { AbsenceModal } from './AbsenceModal';
+import { ActivityEditModal } from './ActivityEditModal';
 import { format, addDays, addWeeks, startOfWeek } from 'date-fns';
 import { nb } from 'date-fns/locale';
 import { Utensils, MessageCircle, Pencil } from 'lucide-react';
@@ -42,6 +43,8 @@ export function ScheduleGrid() {
   const [isStaff] = useState(() =>
     typeof window !== 'undefined' && localStorage.getItem('lederMode') === 'true'
   );
+  const [staff, setStaff] = useState<StaffMember[]>([]);
+  const [editActivity, setEditActivity] = useState<TimeplanActivity | null>(null);
   const [viewMode, setViewMode] = useState<'leder' | 'ledsager'>(() =>
     typeof window !== 'undefined' && localStorage.getItem('lederMode') === 'true' ? 'leder' : 'ledsager'
   );
@@ -58,6 +61,12 @@ export function ScheduleGrid() {
       .then((r) => r.json())
       .then((d) => setMeetings(d.meetings ?? []));
   }, []);
+
+  useEffect(() => {
+    if (!isStaff) return;
+    supabase.from('staff').select('*').order('sort_order').order('name')
+      .then(({ data }) => setStaff((data ?? []) as StaffMember[]));
+  }, [isStaff]);
 
   useEffect(() => {
     const ws = targetWeekStart;
@@ -385,6 +394,28 @@ export function ScheduleGrid() {
           childName={childName!}
           onClose={() => setSelected(null)}
           onToggle={() => toggleAbsence(selected.id)}
+          isStaff={isStaff}
+          onEdit={() => { setEditActivity(selected); setSelected(null); }}
+        />
+      )}
+
+      {editActivity && (
+        <ActivityEditModal
+          activity={editActivity}
+          allStaff={staff}
+          onClose={() => setEditActivity(null)}
+          onSaved={({ load_level, staffIds }) => {
+            const staffId = staffIds[0] ?? null;
+            const staffMember = staff.find((s) => s.id === staffId);
+            setDays((prev) => prev.map((day) => {
+              const patch = (a: TimeplanActivity) =>
+                a.id === editActivity.id
+                  ? { ...a, load_level, staff_id: staffId, staff_name: staffMember?.name ?? null }
+                  : a;
+              return { ...day, main: day.main.map(patch), fritid: day.fritid.map(patch) };
+            }));
+            setEditActivity(null);
+          }}
         />
       )}
     </div>

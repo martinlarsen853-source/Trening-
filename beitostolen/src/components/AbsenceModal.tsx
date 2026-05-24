@@ -11,9 +11,11 @@ type Props = {
   childName: string;
   onClose: () => void;
   onToggle: () => Promise<void>;
+  isStaff?: boolean;
+  onEdit?: () => void;
 };
 
-export function AbsenceModal({ activity, myAbsence, otherAbsences, childName, onClose, onToggle }: Props) {
+export function AbsenceModal({ activity, myAbsence, otherAbsences, childName, onClose, onToggle, isStaff, onEdit }: Props) {
   const [loading, setLoading] = useState(false);
 
   async function handleToggle() {
@@ -25,7 +27,7 @@ export function AbsenceModal({ activity, myAbsence, otherAbsences, childName, on
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 px-0 sm:items-center sm:px-4"
+      className="fixed inset-0 z-[1000] flex items-end justify-center bg-black/40 px-0 sm:items-center sm:px-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div className="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md p-6">
@@ -69,8 +71,16 @@ export function AbsenceModal({ activity, myAbsence, otherAbsences, childName, on
           </div>
         )}
 
-        <div className="border-t border-gray-100 pt-4">
-          <p className="text-sm text-gray-600 mb-4">
+        <div className="border-t border-gray-100 pt-4 flex flex-col gap-2">
+          {isStaff && onEdit && (
+            <button
+              onClick={() => { onClose(); onEdit(); }}
+              className="w-full rounded-xl py-3 text-base font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 active:scale-95 transition-transform"
+            >
+              Rediger aktivitet →
+            </button>
+          )}
+          <p className="text-sm text-gray-600 mb-1">
             {myAbsence
               ? `Du har meldt ${childName} som ikke kommende.`
               : `Meld ${childName} som ikke kommende til denne aktiviteten?`}

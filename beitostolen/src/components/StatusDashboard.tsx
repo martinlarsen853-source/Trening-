@@ -556,17 +556,32 @@ export function StatusDashboard() {
   // Fetch activities + statuses in parallel — direct Supabase queries, no serverless round-trip
   useEffect(() => {
     const today = cestDate().toISOString().slice(0, 10);
+    const dayOfWeek = todayDayOfWeek();
     const ws = currentWeekStart();
     const weDate = new Date(ws + 'T12:00:00');
     weDate.setUTCDate(weDate.getUTCDate() + 6);
     const we = weDate.toISOString().slice(0, 10);
+
+    // Show cached activities immediately so the screen isn't blank while fetching
+    try {
+      const cached = localStorage.getItem(`sd_acts_${today}`);
+      if (cached) {
+        const parsed = JSON.parse(cached) as Activity[];
+        setActivities(
+          parsed
+            .filter(a => !a.target_child || a.target_child.toLowerCase() === childName.toLowerCase())
+            .sort((a, b) => a.time_start.localeCompare(b.time_start))
+        );
+        setLoading(false);
+      }
+    } catch {}
+
     Promise.all([
       supabase.from('activities').select('*').eq('is_fritid', false).gte('week_start', ws).lte('week_start', we).order('day_of_week').order('time_start'),
       supabase.from('activities').select('*').eq('is_fritid', true).gte('week_start', ws).lte('week_start', we).order('day_of_week').order('time_start'),
       supabase.from('activity_status').select('*').eq('date', today),
     ])
       .then(([{ data: acts }, { data: frits }, { data: statusData }]) => {
-        const dayOfWeek = todayDayOfWeek();
         const all: Activity[] = [...((acts as Activity[]) ?? []), ...((frits as Activity[]) ?? [])];
         const todayActs = all
           .filter(a => a.day_of_week === dayOfWeek)
@@ -577,6 +592,7 @@ export function StatusDashboard() {
         for (const s of ((statusData as ActivityStatus[]) ?? [])) map[s.activity_id] = s;
         setStatuses(map);
         setLoading(false);
+        try { localStorage.setItem(`sd_acts_${today}`, JSON.stringify(all.filter(a => a.day_of_week === dayOfWeek))); } catch {}
       })
       .catch(() => setLoading(false));
   }, [childName]);

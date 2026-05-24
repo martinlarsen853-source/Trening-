@@ -1,19 +1,16 @@
 'use client';
 
-import type { Activity, Absence } from '@/lib/supabase';
+import type { TimeplanActivity } from '@/lib/supabase';
 import { ChevronRight } from 'lucide-react';
 
 type Props = {
-  activity: Activity;
-  absences: Absence[];
-  childName: string;
+  activity: TimeplanActivity;
+  myAbsence: boolean;
+  relevantAbsences: string[];
   onClick: () => void;
 };
 
-export function ActivityCard({ activity, absences, childName, onClick }: Props) {
-  const relevant = absences.filter((a) => a.activity_id === activity.id);
-  const myAbsence = relevant.find((a) => a.child_name === childName);
-
+export function ActivityCard({ activity, myAbsence, relevantAbsences, onClick }: Props) {
   return (
     <button
       onClick={onClick}
@@ -93,18 +90,18 @@ export function ActivityCard({ activity, absences, childName, onClick }: Props) 
         <ChevronRight size={18} className="text-gray-300 flex-shrink-0 mt-1" />
       </div>
 
-      {relevant.length > 0 && (
+      {relevantAbsences.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mt-3 pl-[80px]">
-          {relevant.map((a) => (
+          {relevantAbsences.map((name) => (
             <span
-              key={a.id}
+              key={name}
               className={`text-xs font-medium px-2.5 py-1 rounded-full ${
-                a.child_name === childName
+                myAbsence && name.toLowerCase() === activity.target_child?.toLowerCase()
                   ? 'bg-red-500 text-white'
                   : 'bg-red-100 text-red-700'
               }`}
             >
-              {a.child_name} kommer ikke
+              {name} kommer ikke
             </span>
           ))}
         </div>

@@ -1,17 +1,15 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase, type Activity, type Absence } from '@/lib/supabase';
+import { supabase, type TimeplanActivity, type TimeplanDay } from '@/lib/supabase';
 import { ActivityCard } from './ActivityCard';
 import { AbsenceModal } from './AbsenceModal';
-import { NameSetup } from './NameSetup';
 import { format, addDays, addWeeks, startOfWeek } from 'date-fns';
 import { nb } from 'date-fns/locale';
 import { Utensils, MessageCircle, Pencil } from 'lucide-react';
 
 const DAYS = ['Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør', 'Søn'];
 
-// Meal slots — weekday vs weekend
 function getMeals(dayOfWeek: number) {
   const isWeekend = dayOfWeek >= 6;
   if (isWeekend) {
@@ -31,10 +29,7 @@ export function ScheduleGrid() {
     localStorage.setItem('childName', 'Evelina');
     return 'Evelina';
   });
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [fritidActivities, setFritidActivities] = useState<Activity[]>([]);
-  const [absences, setAbsences] = useState<Absence[]>([]);
-  const [weekStart, setWeekStart] = useState('');
+  const [days, setDays] = useState<TimeplanDay[]>([]);
   const [loading, setLoading] = useState(true);
   const [meetings, setMeetings] = useState<{ child: string; date: string; time: string; counselor: string }[]>([]);
   const [selectedDay, setSelectedDay] = useState<number>(() => {
@@ -42,8 +37,8 @@ export function ScheduleGrid() {
     return day === 0 ? 7 : day;
   });
   const [weekOffset, setWeekOffset] = useState(0);
-  const [selected, setSelected] = useState<Activity | null>(null);
-  const [isStaff, setIsStaff] = useState(() =>
+  const [selected, setSelected] = useState<TimeplanActivity | null>(null);
+  const [isStaff] = useState(() =>
     typeof window !== 'undefined' && localStorage.getItem('lederMode') === 'true'
   );
   const [viewMode, setViewMode] = useState<'leder' | 'ledsager'>(() =>
@@ -52,12 +47,10 @@ export function ScheduleGrid() {
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState('');
 
-  // Compute the Monday of the target week (client-side, offset from current week)
   const targetWeekStart = format(
     addWeeks(startOfWeek(new Date(), { weekStartsOn: 1 }), weekOffset),
     'yyyy-MM-dd'
   );
-
 
   useEffect(() => {
     fetch('/api/meetings')
@@ -67,17 +60,13 @@ export function ScheduleGrid() {
 
   useEffect(() => {
     const ws = targetWeekStart;
-    const we = format(addDays(new Date(ws + 'T12:00:00'), 6), 'yyyy-MM-dd');
+    const cn = childName ?? '';
+    const cacheKey = `sg_week_${ws}_${cn}`;
 
-    // Show cached week immediately — no spinner on repeat visits
     try {
-      const raw = localStorage.getItem(`sg_week_${ws}`);
+      const raw = localStorage.getItem(cacheKey);
       if (raw) {
-        const { acts, frits, abs } = JSON.parse(raw);
-        setActivities(acts);
-        setFritidActivities(frits);
-        setAbsences(abs);
-        setWeekStart(ws);
+        setDays(JSON.parse(raw));
         setLoading(false);
       } else {
         setLoading(true);
@@ -86,85 +75,76 @@ export function ScheduleGrid() {
       setLoading(true);
     }
 
-    Promise.all([
-      supabase.from('activities').select('*').eq('is_fritid', false)
-        .gte('week_start', ws).lte('week_start', we)
-        .order('day_of_week').order('time_start'),
-      supabase.from('activities').select('*').eq('is_fritid', true)
-        .gte('week_start', ws).lte('week_start', we)
-        .order('day_of_week').order('time_start'),
-      supabase.from('absences').select('*').gte('registered_at', ws),
-    ]).then(([{ data: acts }, { data: frits }, { data: abs }]) => {
-      const a = (acts as Activity[]) ?? [];
-      const f = (frits as Activity[]) ?? [];
-      const ab = (abs as Absence[]) ?? [];
-      setActivities(a);
-      setFritidActivities(f);
-      setAbsences(ab);
-      setWeekStart(ws);
-      setLoading(false);
-      try { localStorage.setItem(`sg_week_${ws}`, JSON.stringify({ acts: a, frits: f, abs: ab })); } catch {}
-    }).catch(() => setLoading(false));
-  }, [targetWeekStart]);
-
-  useEffect(() => {
-    const channel = supabase
-      .channel('absences-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'absences' }, (payload) => {
-        if (payload.eventType === 'INSERT') setAbsences((p) => [...p, payload.new as Absence]);
-        else if (payload.eventType === 'DELETE') setAbsences((p) => p.filter((a) => a.id !== payload.old.id));
+    fetch(`/api/timeplan?week=${ws}&childName=${encodeURIComponent(cn)}`)
+      .then((r) => r.json())
+      .then((d) => {
+        const fetched: TimeplanDay[] = d.days ?? [];
+        setDays(fetched);
+        setLoading(false);
+        try { localStorage.setItem(cacheKey, JSON.stringify(fetched)); } catch {}
       })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, []);
+      .catch(() => setLoading(false));
+  }, [targetWeekStart, childName]);
 
-  const toggleAbsence = useCallback(async (activityId: string, name: string, existingId?: string) => {
-    if (existingId) {
-      await fetch(`/api/absences/${existingId}`, { method: 'DELETE' });
-    } else {
-      await fetch('/api/absences', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ activity_id: activityId, child_name: name }),
-      });
+  const toggleAbsence = useCallback(async (activityId: string) => {
+    const cn = childName ?? '';
+
+    let currentAbsence = false;
+    for (const day of days) {
+      for (const act of [...day.main, ...day.fritid]) {
+        if (act.id === activityId) { currentAbsence = act.myAbsence; break; }
+      }
     }
-  }, []);
 
-  const ws = weekStart ? new Date(weekStart + 'T12:00:00') : startOfWeek(new Date(), { weekStartsOn: 1 });
+    // Optimistic update
+    const patch = (act: TimeplanActivity): TimeplanActivity =>
+      act.id !== activityId ? act : {
+        ...act,
+        myAbsence: !currentAbsence,
+        relevantAbsences: currentAbsence
+          ? act.relevantAbsences.filter((n) => n.toLowerCase() !== cn.toLowerCase())
+          : [...act.relevantAbsences, cn],
+      };
+
+    setDays((prev) => prev.map((day) => ({
+      ...day,
+      main: day.main.map(patch),
+      fritid: day.fritid.map(patch),
+    })));
+
+    if (currentAbsence) {
+      await supabase.from('absences').delete().match({ activity_id: activityId, child_name: cn });
+    } else {
+      await supabase.from('absences').insert({ activity_id: activityId, child_name: cn });
+    }
+
+    // Invalidate cache so next load re-fetches fresh myAbsence values
+    try { localStorage.removeItem(`sg_week_${targetWeekStart}_${cn}`); } catch {}
+  }, [childName, days, targetWeekStart]);
+
+  const ws = new Date(targetWeekStart + 'T12:00:00');
   const selectedDate = format(addDays(ws, selectedDay - 1), 'yyyy-MM-dd');
   const myMeeting = childName
     ? meetings.find((m) => m.child.toLowerCase() === childName.toLowerCase() && m.date === selectedDate)
     : null;
 
-  // Always show Man–Søn (1–7); add any extra days from DB on top
-  const allDays = [...new Set([
-    1, 2, 3, 4, 5, 6, 7,
-    ...activities.map((a) => a.day_of_week),
-    ...fritidActivities.map((a) => a.day_of_week),
-  ])].sort();
+  const allDays = [...new Set([1, 2, 3, 4, 5, 6, 7, ...days.map((d) => d.dayOfWeek)])].sort();
 
-  const dayActivities = activities
-    .filter((a) => a.day_of_week === selectedDay)
-    .filter((a) => !a.target_child || a.target_child.toLowerCase() === (childName ?? '').toLowerCase())
-    .sort((a, b) => a.time_start.localeCompare(b.time_start));
-
-  const dayFritid = fritidActivities
-    .filter((a) => a.day_of_week === selectedDay)
-    .sort((a, b) => a.time_start.localeCompare(b.time_start));
-
+  const dayData = days.find((d) => d.dayOfWeek === selectedDay);
+  const dayActivities = (dayData?.main ?? []).filter(
+    (a) => !a.target_child || a.target_child.toLowerCase() === (childName ?? '').toLowerCase()
+  );
+  const dayFritid = dayData?.fritid ?? [];
   const meals = getMeals(selectedDay);
+  const isWeekend = selectedDay >= 6;
 
-  // Insert meal cards into the activity list based on time
   type ListItem =
-    | { kind: 'activity'; data: Activity }
+    | { kind: 'activity'; data: TimeplanActivity }
     | { kind: 'meal'; name: string; start: string; end: string }
     | { kind: 'meeting'; time: string; counselor: string };
 
-  const isWeekend = selectedDay >= 6;
-
   const mainList: ListItem[] = [
     ...dayActivities.map((a) => ({ kind: 'activity' as const, data: a })),
-    // On weekends there's no programme/leisure split — merge everything chronologically
     ...(isWeekend ? dayFritid.map((a) => ({ kind: 'activity' as const, data: a })) : []),
     ...meals.map((m) => ({ kind: 'meal' as const, name: m.name, start: m.start, end: m.end })),
     ...(myMeeting ? [{ kind: 'meeting' as const, time: myMeeting.time, counselor: myMeeting.counselor }] : []),
@@ -212,7 +192,7 @@ export function ScheduleGrid() {
         </div>
       </div>
 
-      {/* Leder/Ledsager toggle — only for staff */}
+      {/* Leder/Ledsager toggle */}
       {isStaff && (
         <div className="px-4 pt-2 pb-1 flex items-center justify-between">
           <div>
@@ -237,7 +217,7 @@ export function ScheduleGrid() {
         </div>
       )}
 
-      {/* Child name — editable in leder mode */}
+      {/* Child name */}
       <div className="px-4 pt-2 pb-0">
         {isStaff && viewMode === 'leder' ? (
           editingName ? (
@@ -327,8 +307,8 @@ export function ScheduleGrid() {
               <ActivityCard
                 key={item.data.id}
                 activity={item.data}
-                absences={absences}
-                childName={childName}
+                myAbsence={item.data.myAbsence}
+                relevantAbsences={item.data.relevantAbsences}
                 onClick={() => setSelected(item.data)}
               />
             )
@@ -336,10 +316,9 @@ export function ScheduleGrid() {
         )}
       </div>
 
-      {/* Fritid separator + activities — hidden on weekends (merged into main list) */}
+      {/* Fritid — hidden on weekends (merged above) */}
       {!loading && !isWeekend && (
         <div className="mt-6 mb-2">
-          {/* Big divider */}
           <div className="relative mx-4 mb-4">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t-2 border-purple-100" />
@@ -359,8 +338,8 @@ export function ScheduleGrid() {
                 <ActivityCard
                   key={activity.id}
                   activity={activity}
-                  absences={absences}
-                  childName={childName}
+                  myAbsence={activity.myAbsence}
+                  relevantAbsences={activity.relevantAbsences}
                   onClick={() => setSelected(activity)}
                 />
               ))
@@ -372,10 +351,13 @@ export function ScheduleGrid() {
       {selected && (
         <AbsenceModal
           activity={selected}
-          absences={absences}
-          childName={childName}
+          myAbsence={selected.myAbsence}
+          otherAbsences={selected.relevantAbsences.filter(
+            (n) => n.toLowerCase() !== (childName ?? '').toLowerCase()
+          )}
+          childName={childName!}
           onClose={() => setSelected(null)}
-          onToggle={toggleAbsence}
+          onToggle={() => toggleAbsence(selected.id)}
         />
       )}
     </div>

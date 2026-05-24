@@ -1,31 +1,24 @@
 'use client';
 
 import { useState } from 'react';
-import type { Activity, Absence } from '@/lib/supabase';
+import type { TimeplanActivity } from '@/lib/supabase';
 import { X } from 'lucide-react';
 
 type Props = {
-  activity: Activity;
-  absences: Absence[];
+  activity: TimeplanActivity;
+  myAbsence: boolean;
+  otherAbsences: string[];
   childName: string;
   onClose: () => void;
-  onToggle: (activityId: string, childName: string, existingId?: string) => Promise<void>;
+  onToggle: () => Promise<void>;
 };
 
-export function AbsenceModal({ activity, absences, childName, onClose, onToggle }: Props) {
+export function AbsenceModal({ activity, myAbsence, otherAbsences, childName, onClose, onToggle }: Props) {
   const [loading, setLoading] = useState(false);
-
-  const myAbsence = absences.find(
-    (a) => a.activity_id === activity.id && a.child_name === childName
-  );
-
-  const otherAbsences = absences.filter(
-    (a) => a.activity_id === activity.id && a.child_name !== childName
-  );
 
   async function handleToggle() {
     setLoading(true);
-    await onToggle(activity.id, childName, myAbsence?.id);
+    await onToggle();
     setLoading(false);
     onClose();
   }
@@ -67,9 +60,9 @@ export function AbsenceModal({ activity, absences, childName, onClose, onToggle 
           <div className="mb-4">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Melder ikke</p>
             <div className="flex flex-wrap gap-2">
-              {otherAbsences.map((a) => (
-                <span key={a.id} className="bg-red-100 text-red-700 text-sm font-medium px-3 py-1 rounded-full">
-                  {a.child_name}
+              {otherAbsences.map((name) => (
+                <span key={name} className="bg-red-100 text-red-700 text-sm font-medium px-3 py-1 rounded-full">
+                  {name}
                 </span>
               ))}
             </div>

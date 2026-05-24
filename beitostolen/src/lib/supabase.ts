@@ -103,3 +103,27 @@ export type PushSubscription = {
   name: string;
   subscription: PushSubscriptionJSON;
 };
+
+export type TimeplanActivity = {
+  id: string;
+  name: string;
+  location: string | null;
+  notes: string | null;
+  time_start: string;
+  time_end: string;
+  day_of_week: number;
+  group_name: 'blå' | 'gul' | null;
+  target_child: string | null;
+  is_adult_meeting: boolean;
+  load_level: 'lav' | 'middels' | 'høy' | null;
+  staff_name: string | null;
+  staff_id: string | null;
+  myAbsence: boolean;
+  relevantAbsences: string[];
+};
+
+export type TimeplanDay = {
+  dayOfWeek: number;
+  main: TimeplanActivity[];
+  fritid: TimeplanActivity[];
+};

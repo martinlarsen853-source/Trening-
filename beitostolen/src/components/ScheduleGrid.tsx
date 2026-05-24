@@ -346,6 +346,7 @@ export function ScheduleGrid() {
                 myAbsence={item.data.myAbsence}
                 relevantAbsences={item.data.relevantAbsences}
                 onClick={() => setSelected(item.data)}
+                onEdit={isStaff ? () => setEditActivity(item.data) : undefined}
               />
             )
           )
@@ -377,6 +378,7 @@ export function ScheduleGrid() {
                   myAbsence={activity.myAbsence}
                   relevantAbsences={activity.relevantAbsences}
                   onClick={() => setSelected(activity)}
+                  onEdit={isStaff ? () => setEditActivity(activity) : undefined}
                 />
               ))
             )}

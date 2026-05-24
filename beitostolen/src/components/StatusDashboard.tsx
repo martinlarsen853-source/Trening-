@@ -608,6 +608,36 @@ export function StatusDashboard() {
         <NoActivityCard />
       )}
 
+      {/* Later today */}
+      {!loading && (() => {
+        const laterToday = activities.filter(
+          (a) => a.id !== featured?.id && toMins(a.time_start) > mins
+        );
+        if (laterToday.length === 0) return null;
+        return (
+          <div>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">Senere i dag</p>
+            <div className="flex flex-col gap-2">
+              {laterToday.map((a) => (
+                <button
+                  key={a.id}
+                  onClick={() => setDetailActivity(a)}
+                  className="w-full flex items-center gap-3 bg-white rounded-2xl border border-gray-100 px-4 py-3 text-left active:scale-[0.99] transition-transform shadow-[0_1px_4px_rgba(0,0,0,0.04)]"
+                >
+                  <span className="text-sm font-bold tabular-nums text-blue-700 min-w-[42px]">
+                    {a.time_start.slice(0, 5)}
+                  </span>
+                  <span className="flex-1 text-sm font-semibold text-gray-800 truncate">{a.name}</span>
+                  {a.location && (
+                    <span className="text-xs text-gray-400 truncate max-w-[100px]">{a.location}</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Messages + Fellesrom */}
       <MessagesCard />
       <FellesromMini />

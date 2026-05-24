@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { type TimeplanActivity, type TimeplanDay, type StaffMember } from '@/lib/supabase';
 import { STATIC_WEEKS } from '@/data/timeplan';
 import { ActivityCard } from './ActivityCard';
-import { AbsenceModal } from './AbsenceModal';
+import { ActivityDetailModal } from './ActivityDetailModal';
 import { ActivityEditModal } from './ActivityEditModal';
 import { StaffAvatar } from './StaffAvatar';
 import { format, addDays, addWeeks, startOfWeek } from 'date-fns';
@@ -401,7 +401,7 @@ export function ScheduleGrid() {
       )}
 
       {selected && (
-        <AbsenceModal
+        <ActivityDetailModal
           activity={selected}
           myAbsence={selected.myAbsence}
           otherAbsences={selected.relevantAbsences.filter(

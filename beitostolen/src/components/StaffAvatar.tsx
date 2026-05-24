@@ -24,10 +24,10 @@ export function StaffAvatar({
 }: {
   name: string;
   photoUrl?: string | null;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 }) {
-  const dim = { sm: 28, md: 40, lg: 56, xl: 80 }[size];
-  const textSize = { sm: 'text-[9px]', md: 'text-xs', lg: 'text-sm', xl: 'text-lg' }[size];
+  const dim = { sm: 28, md: 40, lg: 56, xl: 80, '2xl': 140 }[size];
+  const textSize = { sm: 'text-[9px]', md: 'text-xs', lg: 'text-sm', xl: 'text-lg', '2xl': 'text-4xl' }[size];
 
   if (photoUrl) {
     return (

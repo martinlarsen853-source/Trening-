@@ -6,8 +6,7 @@ import { supabase, type Activity, type ActivityStatus, type StaffMember, type Ro
 import { StaffAvatar } from './StaffAvatar';
 import { ActivityEditModal } from './ActivityEditModal';
 import { AttendanceModal } from './AttendanceModal';
-import { BygningKart, gpsToSvg } from './BygningKart';
-import { MapPin, MessageCircle, Users, Clock, Box, ChevronRight } from 'lucide-react';
+import { MapPin, MessageCircle, Users, Clock, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { nb } from 'date-fns/locale';
 import { DagsformWidget } from './DagsformWidget';
@@ -55,8 +54,6 @@ const STATUS_META = {
   avlyst:    { label: 'Avlyst',    bg: 'bg-red-100',    text: 'text-red-700',    dot: 'bg-red-500'    },
   flyttet:   { label: 'Flyttet',   bg: 'bg-blue-100',   text: 'text-blue-700',   dot: 'bg-blue-500'   },
 } as const;
-
-const TOUR_URL = 'https://bhss.adfectus.io/bundle/showcase.html?m=yPcBVhF91Z7&play=1&qs=1&log=0';
 
 // ─── StatusPicker (leder only) ────────────────────────────────────────────────
 
@@ -139,20 +136,7 @@ function ActivityDetailModal({ activity, liveStatus, staffMember, children, isLe
   onAttendance?: () => void;
   onClose: () => void;
 }) {
-  const [show3d, setShow3d] = useState(false);
-  const [ledsagerPos, setLedsagerPos] = useState<{ x: number; y: number } | null>(null);
-  const [gpsStatus, setGpsStatus] = useState<'loading' | 'ok' | 'denied' | 'unsupported'>('loading');
   const [showStatusPicker, setShowStatusPicker] = useState(false);
-
-  useEffect(() => {
-    if (!navigator.geolocation) { setGpsStatus('unsupported'); return; }
-    const id = navigator.geolocation.watchPosition(
-      pos => { setLedsagerPos(gpsToSvg(pos.coords.latitude, pos.coords.longitude)); setGpsStatus('ok'); },
-      () => setGpsStatus('denied'),
-      { enableHighAccuracy: true, timeout: 8000 }
-    );
-    return () => navigator.geolocation.clearWatch(id);
-  }, []);
 
   const isAvlyst = liveStatus?.status === 'avlyst';
   const isCurrent = toMins(activity.time_start) <= nowMins() && toMins(activity.time_end) >= nowMins();
@@ -241,30 +225,6 @@ function ActivityDetailModal({ activity, liveStatus, staffMember, children, isLe
               </div>
             </div>
           )}
-
-          {/* Map */}
-          <p className="text-[10px] font-bold tracking-widest text-gray-400 uppercase mb-2">
-            <MapPin size={10} className="inline mr-1" />Sted i bygget
-          </p>
-          {show3d ? (
-            <div className="rounded-2xl overflow-hidden mb-3" style={{ height: '50vh' }}>
-              <iframe src={TOUR_URL} className="w-full h-full border-0" allowFullScreen allow="xr-spatial-tracking" title="3D-omvisning BHS" />
-            </div>
-          ) : (
-            <div className="bg-blue-50 rounded-2xl p-3 mb-2">
-              <BygningKart location={activity.location} ledsagerPos={ledsagerPos} />
-            </div>
-          )}
-          <div className="flex items-center justify-center gap-1.5 mb-3 text-xs text-gray-400">
-            {gpsStatus === 'loading' && <><div className="w-2 h-2 rounded-full bg-gray-300 animate-pulse" />Henter posisjon…</>}
-            {gpsStatus === 'ok' && <><div className="w-2 h-2 rounded-full bg-green-500" /><span className="text-green-600">Posisjon oppdatert · unøyaktig innendørs</span></>}
-            {(gpsStatus === 'denied' || gpsStatus === 'unsupported') && 'Skjematisk oversikt — ikke i målestokk'}
-          </div>
-          <button onClick={() => setShow3d(v => !v)}
-            className="w-full rounded-2xl bg-blue-50 text-blue-700 font-semibold py-2.5 text-sm flex items-center justify-center gap-2 mb-5 active:scale-95 transition-all">
-            <Box size={15} />
-            {show3d ? '← Tilbake til kart' : 'Se 3D-omvisning av bygget'}
-          </button>
 
           {/* Leder actions */}
           {isLeder && (

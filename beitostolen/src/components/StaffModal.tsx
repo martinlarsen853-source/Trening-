@@ -19,6 +19,7 @@ export function StaffModal({
   const [photoUrl, setPhotoUrl] = useState(member?.photo_url ?? '');
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(member?.photo_url ?? null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -41,6 +42,7 @@ export function StaffModal({
 
   async function save() {
     if (!name.trim()) return;
+    setError(null);
     setSaving(true);
     const payload = { name: name.trim(), title: title.trim() || null, photo_url: photoUrl || null };
     let result;
@@ -50,7 +52,11 @@ export function StaffModal({
       result = await supabase.from('staff').insert(payload).select().single();
     }
     setSaving(false);
-    if (!result.error && result.data) onSaved(result.data as StaffMember);
+    if (result.error || !result.data) {
+      setError(result.error?.message ?? 'Ukjent feil — prøv igjen');
+      return;
+    }
+    onSaved(result.data as StaffMember);
     onClose();
   }
 
@@ -109,9 +115,13 @@ export function StaffModal({
           />
         </div>
 
+        {error && (
+          <p className="text-sm text-red-600 bg-red-50 rounded-2xl px-4 py-2.5 mb-3">{error}</p>
+        )}
+
         <button
           onClick={save}
-          disabled={!name.trim() || saving}
+          disabled={!name.trim() || saving || uploading}
           className="w-full py-3.5 rounded-2xl bg-blue-600 text-white font-bold text-sm disabled:opacity-40"
         >
           {saving ? 'Lagrer…' : 'Lagre'}

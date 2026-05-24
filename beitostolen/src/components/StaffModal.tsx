@@ -29,18 +29,27 @@ export function StaffModal({
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
-    const ext = (file.name.split('.').pop() ?? 'jpg').toLowerCase();
-    setPhotoExt(ext);
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const dataUrl = ev.target?.result as string;
+    const img = new window.Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      // Resize to max 600x600
+      const MAX = 600;
+      const ratio = Math.min(MAX / img.width, MAX / img.height, 1);
+      const w = Math.round(img.width * ratio);
+      const h = Math.round(img.height * ratio);
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext('2d')!.drawImage(img, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
       setPreview(dataUrl);
-      // strip "data:image/...;base64," prefix
-      const base64 = dataUrl.split(',')[1];
-      setPhotoBase64(base64);
+      setPhotoBase64(dataUrl.split(',')[1]);
+      setPhotoExt('jpg');
       setUploading(false);
     };
-    reader.readAsDataURL(file);
+    img.onerror = () => { URL.revokeObjectURL(objectUrl); setUploading(false); };
+    img.src = objectUrl;
   }
 
   async function save() {

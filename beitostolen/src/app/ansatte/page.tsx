@@ -14,7 +14,8 @@ export default function AnsattePage() {
   useEffect(() => {
     fetch('/api/staff')
       .then(r => r.json())
-      .then(d => { setStaff(d.staff ?? []); setLoading(false); });
+      .then(d => { setStaff(d.staff ?? []); setLoading(false); })
+      .catch(() => setLoading(false));
   }, []);
 
   async function deleteStaff(id: string) {

@@ -66,7 +66,8 @@ export function ScheduleGrid() {
     if (!isStaff) return;
     fetch('/api/staff')
       .then(r => r.json())
-      .then(d => setStaff(d.staff ?? []));
+      .then(d => setStaff(d.staff ?? []))
+      .catch(() => {});
   }, [isStaff]);
 
   useEffect(() => {

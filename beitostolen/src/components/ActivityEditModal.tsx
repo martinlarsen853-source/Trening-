@@ -32,7 +32,7 @@ export function ActivityEditModal({
 
   // Load current staff assignments (server-side to avoid client CORS issues)
   useEffect(() => {
-    fetch(`/api/activities/${activity.id}/staff`)
+    fetch(`/api/activities/${activity.id}`)
       .then(r => r.json())
       .then(d => { if (d.staffIds) setSelected(new Set(d.staffIds as string[])); });
   }, [activity.id]);

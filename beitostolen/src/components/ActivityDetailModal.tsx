@@ -5,7 +5,7 @@ import type { TimeplanActivity } from '@/lib/supabase';
 import { StaffAvatar } from './StaffAvatar';
 import { StaffSpotlightModal } from './StaffSpotlightModal';
 import { MapModal } from './MapModal';
-import { LOCATION_TO_BUILDING } from '@/lib/locationMap';
+import { getBuilding } from '@/lib/locationMap';
 import { X, Clock, MapPin, Map } from 'lucide-react';
 
 const DAYS = ['', 'Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag', 'Søndag'];
@@ -70,7 +70,7 @@ export function ActivityDetailModal({
 
   const load = activity.load_level ? LOAD_CONFIG[activity.load_level as keyof typeof LOAD_CONFIG] : null;
   const groupMembers = activity.group_name ? GROUP_MEMBERS[activity.group_name] : null;
-  const buildingId = activity.location ? LOCATION_TO_BUILDING[activity.location] : undefined;
+  const buildingId = getBuilding(activity.location);
 
   return (
     <>

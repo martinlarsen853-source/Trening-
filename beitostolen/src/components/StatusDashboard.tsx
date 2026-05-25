@@ -9,7 +9,7 @@ import { AttendanceModal } from './AttendanceModal';
 import { MapPin, MessageCircle, Users, Clock, ChevronRight, Map } from 'lucide-react';
 import { StaffSpotlightModal } from './StaffSpotlightModal';
 import { MapModal } from './MapModal';
-import { LOCATION_TO_BUILDING } from '@/lib/locationMap';
+import { getBuilding } from '@/lib/locationMap';
 import { format } from 'date-fns';
 import { nb } from 'date-fns/locale';
 import { DagsformWidget } from './DagsformWidget';
@@ -148,7 +148,7 @@ function ActivityDetailModal({ activity, liveStatus, staffMember, children, isLe
   const displayName = staffMember?.name ?? activity.staff_name;
   const load = activity.load_level ? LOAD[activity.load_level] : null;
   const statusMeta = liveStatus ? STATUS_META[liveStatus.status] : null;
-  const buildingId = activity.location ? LOCATION_TO_BUILDING[activity.location] : undefined;
+  const buildingId = getBuilding(activity.location);
 
   return (
     <>

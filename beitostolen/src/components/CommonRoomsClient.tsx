@@ -1,0 +1,107 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { supabase, type RoomCheckin } from '@/lib/supabase';
+import { CommonRoomCard } from './CommonRoomCard';
+import { NameSetup } from './NameSetup';
+
+type Props = { rooms: string[] };
+
+export function CommonRoomsClient({ rooms }: Props) {
+  const [parentName, setParentName] = useState<string | null>(null);
+  const [checkins, setCheckins] = useState<RoomCheckin[]>([]);
+
+  useEffect(() => {
+    // Read parent name from Supabase Auth user metadata (v2-auth)
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      const name = user?.user_metadata?.parent_name as string | undefined;
+      if (name) { setParentName(name); return; }
+      const stored = localStorage.getItem('parentName');
+      if (stored) setParentName(stored);
+    });
+  }, []);
+
+  useEffect(() => {
+    fetch('/api/checkins')
+      .then((r) => r.json())
+      .then((data) => setCheckins(data.checkins ?? []));
+  }, []);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('checkins-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'room_checkins' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          const newItem = payload.new as RoomCheckin;
+          setCheckins((prev) => prev.some((c) => c.id === newItem.id) ? prev : [...prev, newItem]);
+        } else if (payload.eventType === 'DELETE') {
+          setCheckins((prev) => prev.filter((c) => c.id !== payload.old.id));
+        }
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
+  // Periodically remove expired checkins from local state
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCheckins((prev) => prev.filter((c) => new Date(c.expires_at) > new Date()));
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  async function handleCheckin(roomName: string, durationMinutes: number) {
+    const res = await fetch('/api/checkins', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ room_name: roomName, parent_name: parentName, duration_minutes: durationMinutes }),
+    });
+    const data = await res.json();
+    if (data.checkin) {
+      setCheckins((prev) => [...prev, data.checkin]);
+    }
+  }
+
+  async function handleCheckout(id: string) {
+    await fetch(`/api/checkins?id=${id}`, { method: 'DELETE' });
+    setCheckins((prev) => prev.filter((c) => c.id !== id));
+  }
+
+  if (!parentName) {
+    return (
+      <NameSetup
+        storageKey="parentName"
+        label="Hva heter du?"
+        placeholder="Skriv ditt navn..."
+        onSet={setParentName}
+      />
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-gray-500">
+          Innlogget som: <span className="font-medium text-gray-700">{parentName}</span>
+        </p>
+        <button
+          onClick={() => { localStorage.removeItem('parentName'); setParentName(null); }}
+          className="text-xs text-blue-600 font-medium py-1"
+        >
+          Bytt navn
+        </button>
+      </div>
+      {rooms.map((room) => (
+        <CommonRoomCard
+          key={room}
+          roomName={room}
+          checkins={checkins}
+          parentName={parentName}
+          onCheckin={handleCheckin}
+          onCheckout={handleCheckout}
+        />
+      ))}
+    </div>
+  );
+}

@@ -23,11 +23,13 @@ const PATTERNS: [string, string][] = [
   ['paviljong',   'paviljongen'],
 ];
 
-export function getBuilding(location: string | null | undefined): string | undefined {
-  if (!location) return undefined;
-  const lower = location.toLowerCase();
-  for (const [key, id] of PATTERNS) {
-    if (lower.includes(key)) return id;
+export function getBuilding(location: string | null | undefined, fallbackName?: string | null): string | undefined {
+  for (const str of [location, fallbackName]) {
+    if (!str) continue;
+    const lower = str.toLowerCase();
+    for (const [key, id] of PATTERNS) {
+      if (lower.includes(key)) return id;
+    }
   }
   return undefined;
 }

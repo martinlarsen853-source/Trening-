@@ -148,7 +148,7 @@ function ActivityDetailModal({ activity, liveStatus, staffMember, children, isLe
   const displayName = staffMember?.name ?? activity.staff_name;
   const load = activity.load_level ? LOAD[activity.load_level] : null;
   const statusMeta = liveStatus ? STATUS_META[liveStatus.status] : null;
-  const buildingId = getBuilding(activity.location);
+  const buildingId = getBuilding(activity.location, activity.name);
 
   return (
     <>
@@ -328,20 +328,24 @@ function NextActivityCard({ activity, liveStatus, staffMember, isCurrent, onClic
     >
       {/* Top row: label + status */}
       <div className="flex items-center justify-between mb-3">
-        <span className={`text-[10px] font-bold tracking-widest uppercase ${isAvlyst ? 'text-gray-500' : 'text-white/70'}`}>
-          {isCurrent ? 'Pågår nå' : 'Neste aktivitet'}
-        </span>
         <div className="flex items-center gap-2">
-          {statusMeta ? (
+          <span className={`text-[10px] font-bold tracking-widest uppercase ${isAvlyst ? 'text-gray-500' : 'text-white/70'}`}>
+            {isCurrent ? 'Pågår nå' : 'Neste aktivitet'}
+          </span>
+          {isCurrent && !isAvlyst && (
+            <span className="inline-flex items-center gap-1 bg-red-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">
+              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+              LIVE
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {statusMeta && (
             <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${statusMeta.bg} ${statusMeta.text}`}>
               <span className={`w-1.5 h-1.5 rounded-full ${statusMeta.dot}`} />{statusMeta.label}
               {liveStatus?.note && <span className="font-normal"> · {liveStatus.note}</span>}
             </span>
-          ) : isCurrent ? (
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-500/20 text-green-200">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />Pågår
-            </span>
-          ) : null}
+          )}
         </div>
       </div>
 

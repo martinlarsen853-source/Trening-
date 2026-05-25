@@ -70,7 +70,7 @@ export function ActivityDetailModal({
 
   const load = activity.load_level ? LOAD_CONFIG[activity.load_level as keyof typeof LOAD_CONFIG] : null;
   const groupMembers = activity.group_name ? GROUP_MEMBERS[activity.group_name] : null;
-  const buildingId = getBuilding(activity.location);
+  const buildingId = getBuilding(activity.location, activity.name);
 
   return (
     <>

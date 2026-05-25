@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 import { format, startOfWeek, addDays } from 'date-fns';
 import { nb } from 'date-fns/locale';
 import { Utensils, Clock, Lock, Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
@@ -103,14 +103,14 @@ export default function MatPage() {
           <p className="text-xs font-semibold text-gray-500 text-center">Man–fre</p>
           <p className="text-xs font-semibold text-gray-500 text-center">Lør–søn</p>
           {MEAL_TIMES.map((m) => (
-            <>
-              <div key={m.name + '-label'}>
+            <Fragment key={m.name}>
+              <div>
                 <p className="text-sm font-semibold text-gray-800">{m.name}</p>
                 {m.note && <p className="text-[10px] text-gray-400 leading-tight">{m.note}</p>}
               </div>
-              <p key={m.name + '-wday'} className="text-sm text-gray-600 tabular-nums text-center">{m.weekday}</p>
-              <p key={m.name + '-wend'} className="text-sm text-gray-600 tabular-nums text-center">{m.weekend}</p>
-            </>
+              <p className="text-sm text-gray-600 tabular-nums text-center">{m.weekday}</p>
+              <p className="text-sm text-gray-600 tabular-nums text-center">{m.weekend}</p>
+            </Fragment>
           ))}
         </div>
       </div>

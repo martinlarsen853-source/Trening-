@@ -27,6 +27,7 @@ export type Activity = {
   group_name: 'blå' | 'gul' | null;
   target_child: string | null;
   is_adult_meeting: boolean;
+  is_dinner: boolean;
 };
 
 export type Absence = {

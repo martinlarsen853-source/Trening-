@@ -104,7 +104,7 @@ export function ScheduleGrid() {
         const fetched: TimeplanDay[] = d.days ?? [];
         if (staticDays) {
           // Merge dynamic fields (absences, staff, load_level) into the static structure
-          const dynMap = new Map<string, Pick<TimeplanActivity, 'myAbsence' | 'relevantAbsences' | 'staff' | 'load_level' | 'staff_id' | 'staff_name'>>();
+          const dynMap = new Map<string, Pick<TimeplanActivity, 'myAbsence' | 'relevantAbsences' | 'staff' | 'load_level' | 'staff_id' | 'staff_name' | 'transition_flags' | 'transition_note'>>();
           for (const day of fetched) {
             for (const act of [...day.main, ...day.fritid]) {
               dynMap.set(act.id, {
@@ -114,6 +114,8 @@ export function ScheduleGrid() {
                 load_level: act.load_level,
                 staff_id: act.staff_id,
                 staff_name: act.staff_name,
+                transition_flags: act.transition_flags,
+                transition_note: act.transition_note,
               });
             }
           }
@@ -450,7 +452,7 @@ export function ScheduleGrid() {
           activity={editActivity}
           allStaff={staff}
           onClose={() => setEditActivity(null)}
-          onSaved={({ load_level, staffIds }) => {
+          onSaved={({ load_level, staffIds, transition_flags, transition_note }) => {
             const staffId = staffIds[0] ?? null;
             const staffMember = staff.find((s) => s.id === staffId);
             const updatedStaff = staffIds
@@ -460,7 +462,7 @@ export function ScheduleGrid() {
             setDays((prev) => prev.map((day) => {
               const patch = (a: TimeplanActivity) =>
                 a.id === editActivity.id
-                  ? { ...a, load_level, staff_id: staffId, staff_name: staffMember?.name ?? null, staff: updatedStaff }
+                  ? { ...a, load_level, staff_id: staffId, staff_name: staffMember?.name ?? null, staff: updatedStaff, transition_flags, transition_note }
                   : a;
               return { ...day, main: day.main.map(patch), fritid: day.fritid.map(patch) };
             }));

@@ -28,14 +28,21 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const body = await req.json() as { load_level?: string | null; staffIds?: string[] };
+  const body = await req.json() as {
+    load_level?: string | null;
+    staffIds?: string[];
+    transition_flags?: string[];
+    transition_note?: string | null;
+  };
   const supabase = getSupabase();
 
-  if ('load_level' in body) {
-    const { error } = await supabase
-      .from('activities')
-      .update({ load_level: body.load_level ?? null })
-      .eq('id', id);
+  const activityUpdates: Record<string, unknown> = {};
+  if ('load_level' in body) activityUpdates.load_level = body.load_level ?? null;
+  if ('transition_flags' in body) activityUpdates.transition_flags = body.transition_flags ?? [];
+  if ('transition_note' in body) activityUpdates.transition_note = body.transition_note ?? null;
+
+  if (Object.keys(activityUpdates).length > 0) {
+    const { error } = await supabase.from('activities').update(activityUpdates).eq('id', id);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   }
 

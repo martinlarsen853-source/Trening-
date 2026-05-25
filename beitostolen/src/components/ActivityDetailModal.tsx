@@ -6,6 +6,7 @@ import { StaffAvatar } from './StaffAvatar';
 import { StaffSpotlightModal } from './StaffSpotlightModal';
 import { MapModal } from './MapModal';
 import { getBuilding } from '@/lib/locationMap';
+import { TransitionBadges } from './TransitionBadges';
 import { X, Clock, MapPin, Map } from 'lucide-react';
 
 const DAYS = ['', 'Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag', 'Søndag'];
@@ -116,6 +117,14 @@ export function ActivityDetailModal({
                 </button>
               )}
             </div>
+
+            {/* Transition badges */}
+            {(activity.transition_flags?.length > 0 || activity.transition_note) && (
+              <div className="mb-5">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Før aktiviteten</p>
+                <TransitionBadges flags={activity.transition_flags ?? []} note={activity.transition_note} />
+              </div>
+            )}
 
             {/* Load level */}
             {load && (

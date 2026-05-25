@@ -10,6 +10,7 @@ import { MapPin, MessageCircle, Users, Clock, ChevronRight, Map } from 'lucide-r
 import { StaffSpotlightModal } from './StaffSpotlightModal';
 import { MapModal } from './MapModal';
 import { getBuilding } from '@/lib/locationMap';
+import { TransitionBadges } from './TransitionBadges';
 import { format } from 'date-fns';
 import { nb } from 'date-fns/locale';
 import { DagsformWidget } from './DagsformWidget';
@@ -379,6 +380,11 @@ function HomeActivityCard({ activity, liveStatus, staffMember, isCurrent, onClic
             {activity.location && (
               <p className="text-sm text-gray-500 mt-0.5">{activity.location}</p>
             )}
+            {(activity.transition_flags?.length > 0 || activity.transition_note) && (
+              <div className="mt-1.5">
+                <TransitionBadges flags={activity.transition_flags ?? []} note={activity.transition_note} size="sm" />
+              </div>
+            )}
             {displayName && (
               <div className="flex items-center gap-1.5 mt-1.5">
                 <StaffAvatar name={displayName} photoUrl={staffMember?.photo_url ?? null} size="sm" />
@@ -684,9 +690,9 @@ export function StatusDashboard() {
           activity={editActivity}
           allStaff={Object.values(staffMap)}
           onClose={() => setEditActivity(null)}
-          onSaved={({ load_level, staffIds }) => {
+          onSaved={({ load_level, staffIds, transition_flags, transition_note }) => {
             setActivities(prev => prev.map(a =>
-              a.id === editActivity.id ? { ...a, load_level, staff_id: staffIds[0] ?? null } : a
+              a.id === editActivity.id ? { ...a, load_level, staff_id: staffIds[0] ?? null, transition_flags, transition_note } : a
             ));
           }}
         />

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { type Activity, type StaffMember, type TimeplanActivity } from '@/lib/supabase';
 import { StaffAvatar } from './StaffAvatar';
+import { FLAG_CONFIG } from './TransitionBadges';
 import { X } from 'lucide-react';
 
 const LOAD_OPTIONS = [
@@ -17,14 +18,16 @@ export function ActivityEditModal({
   onClose,
   onSaved,
 }: {
-  activity: Pick<Activity | TimeplanActivity, 'id' | 'name' | 'time_start' | 'time_end' | 'load_level'>;
+  activity: Pick<Activity | TimeplanActivity, 'id' | 'name' | 'time_start' | 'time_end' | 'load_level' | 'transition_flags' | 'transition_note'>;
   allStaff: StaffMember[];
   onClose: () => void;
-  onSaved: (updates: { load_level: Activity['load_level']; staffIds: string[] }) => void;
+  onSaved: (updates: { load_level: Activity['load_level']; staffIds: string[]; transition_flags: string[]; transition_note: string | null }) => void;
 }) {
   const [staffList, setStaffList] = useState<StaffMember[]>(allStaff);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [loadLevel, setLoadLevel] = useState<Activity['load_level']>(activity.load_level);
+  const [flags, setFlags] = useState<Set<string>>(new Set(activity.transition_flags ?? []));
+  const [transNote, setTransNote] = useState<string>(activity.transition_note ?? '');
   const [saving, setSaving] = useState(false);
 
   // Keep staffList in sync if allStaff prop changes (e.g. parent fetches later)
@@ -47,13 +50,15 @@ export function ActivityEditModal({
 
   async function save() {
     setSaving(true);
+    const transition_flags = [...flags];
+    const transition_note = transNote.trim() || null;
     await fetch(`/api/activities/${activity.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ load_level: loadLevel, staffIds: [...selected] }),
+      body: JSON.stringify({ load_level: loadLevel, staffIds: [...selected], transition_flags, transition_note }),
     });
     setSaving(false);
-    onSaved({ load_level: loadLevel, staffIds: [...selected] });
+    onSaved({ load_level: loadLevel, staffIds: [...selected], transition_flags, transition_note });
     onClose();
   }
 
@@ -137,6 +142,35 @@ export function ActivityEditModal({
                   })}
                 </div>
               )}
+            </div>
+
+            {/* Transition flags */}
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Overgangsinfo</p>
+              <div className="flex flex-wrap gap-2 mb-3">
+                {Object.entries(FLAG_CONFIG).map(([key, cfg]) => {
+                  const on = flags.has(key);
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setFlags(prev => { const n = new Set(prev); on ? n.delete(key) : n.add(key); return n; })}
+                      className={`inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full border-2 transition-all ${
+                        on ? `${cfg.bg} ${cfg.text} border-current` : 'bg-gray-50 text-gray-400 border-transparent'
+                      }`}
+                    >
+                      {cfg.icon} {cfg.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <input
+                type="text"
+                value={transNote}
+                onChange={e => setTransNote(e.target.value)}
+                placeholder="Tilleggsinfo (valgfritt)…"
+                className="w-full border border-gray-200 rounded-2xl px-4 py-2.5 text-sm outline-none focus:border-blue-400"
+              />
             </div>
           </div>
 

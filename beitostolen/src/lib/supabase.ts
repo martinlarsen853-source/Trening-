@@ -36,6 +36,8 @@ export type Activity = {
   load_level: 'lav' | 'middels' | 'høy' | null;
   staff_name: string | null;
   staff_id: string | null;
+  transition_flags: string[];
+  transition_note: string | null;
 };
 
 export type ChildProfile = {
@@ -121,6 +123,8 @@ export type TimeplanActivity = {
   staff: { id: string; name: string; photo_url: string | null }[];
   myAbsence: boolean;
   relevantAbsences: string[];
+  transition_flags: string[];
+  transition_note: string | null;
 };
 
 export type TimeplanDay = {

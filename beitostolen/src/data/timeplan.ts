@@ -1,13 +1,13 @@
 import type { TimeplanActivity, TimeplanDay } from '@/lib/supabase';
 
-type StaticActivity = Omit<TimeplanActivity, 'myAbsence' | 'relevantAbsences' | 'staff'>;
+type StaticActivity = Omit<TimeplanActivity, 'myAbsence' | 'relevantAbsences' | 'staff' | 'transition_flags' | 'transition_note'>;
 type StaticDay = { dayOfWeek: number; main: StaticActivity[]; fritid: StaticActivity[] };
 
 function hydrate(days: StaticDay[]): TimeplanDay[] {
   return days.map((d) => ({
     dayOfWeek: d.dayOfWeek,
-    main: d.main.map((a) => ({ ...a, myAbsence: false, relevantAbsences: [], staff: [] })),
-    fritid: d.fritid.map((a) => ({ ...a, myAbsence: false, relevantAbsences: [], staff: [] })),
+    main: d.main.map((a) => ({ ...a, myAbsence: false, relevantAbsences: [], staff: [], transition_flags: [], transition_note: null })),
+    fritid: d.fritid.map((a) => ({ ...a, myAbsence: false, relevantAbsences: [], staff: [], transition_flags: [], transition_note: null })),
   }));
 }
 

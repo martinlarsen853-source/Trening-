@@ -32,9 +32,13 @@ function Toggle({ on, onToggle, label, description }: {
 export default function InnstillingerPage() {
   const { dark, largeText, setDark, setLargeText } = useTheme();
   const [lederMode, setLederMode] = useState(false);
+  const [staffName, setStaffName] = useState('');
+  const [groupName, setGroupName] = useState('Gruppe 2C');
 
   useEffect(() => {
     setLederMode(localStorage.getItem('lederMode') === 'true');
+    setStaffName(localStorage.getItem('staffName') || '');
+    setGroupName(localStorage.getItem('groupName') || 'Gruppe 2C');
   }, []);
 
   function toggleLeder(on: boolean) {
@@ -42,6 +46,17 @@ export default function InnstillingerPage() {
     if (on) localStorage.setItem('lederMode', 'true');
     else localStorage.removeItem('lederMode');
     window.location.reload();
+  }
+
+  function handleStaffName(val: string) {
+    setStaffName(val);
+    if (val.trim()) localStorage.setItem('staffName', val.trim());
+    else localStorage.removeItem('staffName');
+  }
+
+  function handleGroupName(val: string) {
+    setGroupName(val);
+    if (val.trim()) localStorage.setItem('groupName', val.trim());
   }
 
   return (
@@ -64,6 +79,17 @@ export default function InnstillingerPage() {
         />
       </div>
 
+      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">Gruppenavn</p>
+      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm px-4 py-3 mb-4">
+        <input
+          type="text"
+          value={groupName}
+          onChange={e => handleGroupName(e.target.value)}
+          placeholder="F.eks. Gruppe 2C"
+          className="w-full text-sm font-semibold text-gray-900 outline-none placeholder:text-gray-300"
+        />
+      </div>
+
       <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">Tilgang</p>
       <div className="bg-white rounded-3xl border border-gray-100 shadow-sm px-4">
         <Toggle
@@ -76,16 +102,27 @@ export default function InnstillingerPage() {
 
       {lederMode && (
         <div className="mt-4">
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">Ditt navn (leder)</p>
+          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm px-4 py-3 mb-4">
+            <input
+              type="text"
+              value={staffName}
+              onChange={e => handleStaffName(e.target.value)}
+              placeholder="F.eks. Martine"
+              className="w-full text-sm font-semibold text-gray-900 outline-none placeholder:text-gray-300"
+            />
+          </div>
+
           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">Lederverktøy</p>
           <div className="bg-white rounded-3xl border border-gray-100 shadow-sm divide-y divide-gray-100 overflow-hidden">
-            <Link href="/ansatte" className="flex items-center justify-between px-4 py-4 hover:bg-gray-50 active:bg-gray-100 transition-colors">
+            <Link href="/ansatte" className="flex items-center justify-between px-4 py-4 active:bg-gray-100 transition-colors">
               <div>
                 <p className="font-semibold text-gray-900">Administrer ansatte</p>
                 <p className="text-sm text-gray-500 mt-0.5">Legg til, rediger eller fjern ansatte</p>
               </div>
               <span className="text-gray-300 text-lg">›</span>
             </Link>
-            <Link href="/timeplan" className="flex items-center justify-between px-4 py-4 hover:bg-gray-50 active:bg-gray-100 transition-colors">
+            <Link href="/timeplan" className="flex items-center justify-between px-4 py-4 active:bg-gray-100 transition-colors">
               <div>
                 <p className="font-semibold text-gray-900">Timeplan (leder)</p>
                 <p className="text-sm text-gray-500 mt-0.5">Rediger aktiviteter og belastningsnivå</p>

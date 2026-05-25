@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { NavBar } from './NavBar';
 import { WeatherWidget } from './WeatherWidget';
@@ -9,11 +9,14 @@ const AUTH_PATHS = ['/login', '/signup'];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const [groupName, setGroupName] = useState('Gruppe 2C');
 
   useEffect(() => {
     Object.keys(localStorage)
       .filter(k => k.startsWith('sb-') && k.includes('-auth-token'))
       .forEach(k => localStorage.removeItem(k));
+    const stored = localStorage.getItem('groupName');
+    if (stored) setGroupName(stored);
   }, []);
   const isAuth = AUTH_PATHS.includes(pathname);
 
@@ -39,7 +42,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="relative z-10 px-5 pt-4 pb-6 flex items-start justify-between">
             <div>
               <p className="text-[10px] font-bold tracking-[0.28em] text-blue-300 uppercase mb-1">Beitostølen Helsesportsenter</p>
-              <h1 className="text-[2.4rem] font-black text-white leading-none tracking-tight drop-shadow-sm">Gruppe 2C</h1>
+              <h1 className="text-[2.4rem] font-black text-white leading-none tracking-tight drop-shadow-sm">{groupName}</h1>
             </div>
             <WeatherWidget />
           </div>

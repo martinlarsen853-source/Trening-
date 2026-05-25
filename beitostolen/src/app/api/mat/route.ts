@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const { pin, date, meal_name, serve_time, notes } = await req.json();
+  const { pin, date, meal_name, serve_time, notes, allergens, alternative_diets } = await req.json();
   if (pin !== ADMIN_PIN) return NextResponse.json({ error: 'Feil PIN' }, { status: 403 });
   if (!date || !meal_name || !serve_time) {
     return NextResponse.json({ error: 'Mangler felt' }, { status: 400 });
@@ -33,7 +33,12 @@ export async function POST(req: NextRequest) {
   const supabase = getSupabase();
   const { data, error } = await supabase
     .from('daily_menu')
-    .insert({ date, meal_name, serve_time, notes: notes || null })
+    .insert({
+      date, meal_name, serve_time,
+      notes: notes || null,
+      allergens: allergens ?? [],
+      alternative_diets: alternative_diets || null,
+    })
     .select()
     .single();
 

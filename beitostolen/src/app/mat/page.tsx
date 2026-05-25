@@ -11,6 +11,19 @@ type Meal = {
   meal_name: string;
   serve_time: string;
   notes: string | null;
+  allergens: string[] | null;
+  alternative_diets: string | null;
+};
+
+const ALLERGEN_OPTIONS = ['Gluten', 'Laktose', 'Nøtter', 'Egg', 'Fisk', 'Skalldyr', 'Soya'];
+const ALLERGEN_COLORS: Record<string, string> = {
+  Gluten: 'bg-amber-100 text-amber-700',
+  Laktose: 'bg-blue-100 text-blue-700',
+  Nøtter: 'bg-orange-100 text-orange-700',
+  Egg: 'bg-yellow-100 text-yellow-700',
+  Fisk: 'bg-cyan-100 text-cyan-700',
+  Skalldyr: 'bg-teal-100 text-teal-700',
+  Soya: 'bg-green-100 text-green-700',
 };
 
 const DAYS_NO = ['Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag'];
@@ -36,6 +49,8 @@ export default function MatPage() {
     meal_name: '',
     serve_time: '17:30',
     notes: '',
+    allergens: [] as string[],
+    alternative_diets: '',
   });
 
   const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
@@ -77,7 +92,7 @@ export default function MatPage() {
       setMeals((prev) => [...prev, data.meal].sort((a, b) =>
         a.date.localeCompare(b.date) || a.serve_time.localeCompare(b.serve_time)
       ));
-      setForm((f) => ({ ...f, meal_name: '', notes: '' }));
+      setForm((f) => ({ ...f, meal_name: '', notes: '', allergens: [], alternative_diets: '' }));
     }
     setLoading(false);
   }
@@ -163,6 +178,18 @@ export default function MatPage() {
                           <p className="text-xs text-gray-500">{meal.serve_time.slice(0, 5)}</p>
                           {meal.notes && <span className="text-xs text-gray-400">· {meal.notes}</span>}
                         </div>
+                        {meal.alternative_diets && (
+                          <p className="text-xs text-green-700 font-medium mt-0.5">{meal.alternative_diets}</p>
+                        )}
+                        {meal.allergens && meal.allergens.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {meal.allergens.map(a => (
+                              <span key={a} className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${ALLERGEN_COLORS[a] ?? 'bg-gray-100 text-gray-600'}`}>
+                                {a}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       {unlocked && (
                         <button
@@ -247,11 +274,44 @@ export default function MatPage() {
                 <label className="text-xs text-gray-500 font-medium mb-1 block">Notater (valgfritt)</label>
                 <input
                   type="text"
-                  placeholder="f.eks. Glutenfri variant tilgjengelig"
+                  placeholder="f.eks. Serveres med brød"
                   value={form.notes}
                   onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
                   className="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:border-blue-500"
                 />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 font-medium mb-1 block">Alternativt kosthold (valgfritt)</label>
+                <input
+                  type="text"
+                  placeholder="f.eks. Vegetar og glutenfri variant"
+                  value={form.alternative_diets}
+                  onChange={(e) => setForm((f) => ({ ...f, alternative_diets: e.target.value }))}
+                  className="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 font-medium mb-2 block">Allergener</label>
+                <div className="flex flex-wrap gap-2">
+                  {ALLERGEN_OPTIONS.map(a => {
+                    const on = form.allergens.includes(a);
+                    return (
+                      <button
+                        key={a}
+                        type="button"
+                        onClick={() => setForm(f => ({
+                          ...f,
+                          allergens: on ? f.allergens.filter(x => x !== a) : [...f.allergens, a],
+                        }))}
+                        className={`text-sm font-semibold px-3 py-1.5 rounded-full border-2 transition-all ${
+                          on ? `${ALLERGEN_COLORS[a] ?? 'bg-gray-100 text-gray-700'} border-transparent` : 'border-gray-200 text-gray-500 bg-white'
+                        }`}
+                      >
+                        {a}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
               <button
                 onClick={addMeal}

@@ -7,6 +7,7 @@ import { StaffSpotlightModal } from './StaffSpotlightModal';
 import { MapModal } from './MapModal';
 import { getBuilding } from '@/lib/locationMap';
 import { TransitionBadges } from './TransitionBadges';
+import { ChildAdaptations } from './ChildAdaptations';
 import { X, Clock, MapPin, Map } from 'lucide-react';
 
 const DAYS = ['', 'Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag', 'Søndag'];
@@ -210,6 +211,11 @@ export function ActivityDetailModal({
                 </div>
               </div>
             )}
+
+            {/* Child adaptations */}
+            <div className="mb-5">
+              <ChildAdaptations childName={childName} isLeder={isStaff ?? false} />
+            </div>
           </div>
 
           {/* Sticky bottom — meld avbud */}

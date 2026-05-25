@@ -11,6 +11,7 @@ import { StaffSpotlightModal } from './StaffSpotlightModal';
 import { MapModal } from './MapModal';
 import { getBuilding } from '@/lib/locationMap';
 import { TransitionBadges } from './TransitionBadges';
+import { ActivityLogModal } from './ActivityLogModal';
 import { format } from 'date-fns';
 import { nb } from 'date-fns/locale';
 import { DagsformWidget } from './DagsformWidget';
@@ -143,6 +144,7 @@ function ActivityDetailModal({ activity, liveStatus, staffMember, children, isLe
   const [showStatusPicker, setShowStatusPicker] = useState(false);
   const [spotlight, setSpotlight] = useState<{ name: string; photoUrl: string | null } | null>(null);
   const [showMap, setShowMap] = useState(false);
+  const [showLog, setShowLog] = useState(false);
 
   const isAvlyst = liveStatus?.status === 'avlyst';
   const isCurrent = toMins(activity.time_start) <= nowMins() && toMins(activity.time_end) >= nowMins();
@@ -247,7 +249,7 @@ function ActivityDetailModal({ activity, liveStatus, staffMember, children, isLe
 
             {/* Leder actions */}
             {isLeder && (
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <button onClick={() => setShowStatusPicker(true)}
                   className="flex-1 py-3 rounded-2xl bg-gray-100 text-gray-700 font-semibold text-sm active:scale-95 transition-all">
                   Sett status
@@ -258,6 +260,10 @@ function ActivityDetailModal({ activity, liveStatus, staffMember, children, isLe
                     Fremmøte
                   </button>
                 )}
+                <button onClick={() => setShowLog(true)}
+                  className="flex-1 py-3 rounded-2xl bg-gray-100 text-gray-700 font-semibold text-sm active:scale-95 transition-all">
+                  Logg
+                </button>
                 {onEdit && (
                   <button onClick={onEdit}
                     className="flex-1 py-3 rounded-2xl bg-blue-600 text-white font-bold text-sm active:scale-95 transition-all">
@@ -294,6 +300,14 @@ function ActivityDetailModal({ activity, liveStatus, staffMember, children, isLe
           location={activity.location!}
           buildingId={buildingId}
           onClose={() => setShowMap(false)}
+        />
+      )}
+      {showLog && (
+        <ActivityLogModal
+          activity={activity}
+          date={date}
+          loggedBy={staffName}
+          onClose={() => setShowLog(false)}
         />
       )}
     </>

@@ -89,7 +89,7 @@ function StatusPicker({ activityId, current, note, staffName, date, onSave, onCl
   }
 
   return (
-    <div className="fixed inset-0 z-[400] bg-black/70 backdrop-blur-sm flex items-end" onClick={onClose}>
+    <div className="fixed inset-0 z-[1050] bg-black/70 backdrop-blur-sm flex items-end" onClick={onClose}>
       <div className="w-full bg-white rounded-t-3xl max-w-lg mx-auto p-5" onClick={e => e.stopPropagation()}>
         <div className="flex justify-center mb-4"><div className="w-10 h-1 bg-gray-200 rounded-full" /></div>
         <p className="font-bold text-gray-900 mb-3">Sett status</p>
@@ -153,7 +153,7 @@ function ActivityDetailModal({ activity, liveStatus, staffMember, children, isLe
 
   return (
     <>
-      <div className="fixed inset-0 z-[300] bg-black/70 backdrop-blur-sm flex items-end" onClick={onClose}>
+      <div className="fixed inset-0 z-[1000] bg-black/70 backdrop-blur-sm flex items-end" onClick={onClose}>
         <div
           className="w-full bg-white rounded-t-3xl max-w-lg mx-auto overflow-y-auto"
           style={{ maxHeight: '92vh' }}
@@ -164,7 +164,7 @@ function ActivityDetailModal({ activity, liveStatus, staffMember, children, isLe
             <div className="w-10 h-1 bg-gray-200 rounded-full" />
           </div>
 
-          <div className="px-5 pb-6">
+          <div className="px-5" style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}>
             {/* Header */}
             <div className="flex items-start justify-between mb-4">
               <div>

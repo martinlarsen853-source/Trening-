@@ -322,13 +322,13 @@ function NextActivityCard({ activity, liveStatus, staffMember, isCurrent, onClic
       onClick={onClick}
       className={`w-full text-left rounded-3xl p-5 shadow-lg active:scale-[0.98] transition-all ${
         isAvlyst ? 'bg-gray-200' : isCurrent
-          ? 'bg-gradient-to-br from-blue-600 to-blue-800 shadow-blue-500/25'
-          : 'bg-gradient-to-br from-slate-700 to-slate-900 shadow-slate-500/20'
+          ? 'bg-gradient-to-br from-emerald-500 to-teal-700 shadow-emerald-500/25'
+          : 'bg-gradient-to-br from-blue-500 to-indigo-700 shadow-blue-500/25'
       }`}
     >
       {/* Top row: label + status */}
       <div className="flex items-center justify-between mb-3">
-        <span className={`text-[10px] font-bold tracking-widest uppercase ${isAvlyst ? 'text-gray-500' : 'text-blue-200/80'}`}>
+        <span className={`text-[10px] font-bold tracking-widest uppercase ${isAvlyst ? 'text-gray-500' : 'text-white/70'}`}>
           {isCurrent ? 'Pågår nå' : 'Neste aktivitet'}
         </span>
         <div className="flex items-center gap-2">
@@ -351,7 +351,7 @@ function NextActivityCard({ activity, liveStatus, staffMember, isCurrent, onClic
       </h3>
 
       {/* Time */}
-      <p className={`text-sm mb-4 ${isAvlyst ? 'text-gray-500' : 'text-blue-200/70'}`}>
+      <p className={`text-sm mb-4 ${isAvlyst ? 'text-gray-500' : 'text-white/60'}`}>
         {activity.time_start.slice(0, 5)} – {activity.time_end.slice(0, 5)}
         {timeLabel && !isAvlyst && <span className="ml-1 font-semibold text-white/80">· {timeLabel}</span>}
       </p>
@@ -360,7 +360,7 @@ function NextActivityCard({ activity, liveStatus, staffMember, isCurrent, onClic
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           {activity.location && (
-            <span className={`text-xs flex items-center gap-1 ${isAvlyst ? 'text-gray-500' : 'text-blue-200/70'}`}>
+            <span className={`text-xs flex items-center gap-1 ${isAvlyst ? 'text-gray-500' : 'text-white/60'}`}>
               <MapPin size={11} />{activity.location}
             </span>
           )}

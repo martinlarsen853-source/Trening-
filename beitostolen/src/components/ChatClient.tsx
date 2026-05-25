@@ -84,7 +84,10 @@ export function ChatClient() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-160px)]">
+    <div
+      className="flex flex-col overflow-hidden"
+      style={{ height: 'calc(100dvh - 222px - env(safe-area-inset-bottom, 0px))' }}
+    >
       {/* Tabs */}
       <div className="flex gap-1 px-4 pt-3 pb-1">
         {(['gruppe', 'stab'] as Tab[]).map((t) => (
@@ -103,7 +106,7 @@ export function ChatClient() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 flex flex-col gap-2 pb-2">
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 flex flex-col gap-2 pb-2">
         {messages.length === 0 && (
           <p className="text-center text-sm text-gray-400 mt-8">
             {tab === 'gruppe' ? 'Ingen meldinger ennå. Si hei! 👋' : 'Ingen meldinger ennå. Still gjerne spørsmål!'}

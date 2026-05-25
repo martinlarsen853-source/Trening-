@@ -95,6 +95,19 @@ export function ScheduleGrid() {
       .catch(() => setLoading(false));
   }, [targetWeekStart]);
 
+  // Snap selectedDay to a valid day once activities load
+  useEffect(() => {
+    if (loading) return;
+    const days = [...new Set([
+      ...activities.map((a) => a.day_of_week),
+      ...fritidActivities.map((a) => a.day_of_week),
+    ])].sort((a, b) => a - b);
+    if (days.length > 0 && !days.includes(selectedDay)) {
+      const todayNum = new Date().getDay() || 7;
+      setSelectedDay(days.find((d) => d >= todayNum) ?? days[days.length - 1]);
+    }
+  }, [loading, activities, fritidActivities, selectedDay]);
+
   useEffect(() => {
     const channel = supabase
       .channel('absences-realtime')
@@ -124,12 +137,11 @@ export function ScheduleGrid() {
     ? meetings.find((m) => m.child.toLowerCase() === childName.toLowerCase() && m.date === selectedDate)
     : null;
 
-  // Always show Man–Søn (1–7); add any extra days from DB on top
+  // Only show days that actually have activities this week
   const allDays = [...new Set([
-    1, 2, 3, 4, 5, 6, 7,
     ...activities.map((a) => a.day_of_week),
     ...fritidActivities.map((a) => a.day_of_week),
-  ])].sort();
+  ])].sort((a, b) => a - b);
 
   const dayActivities = activities
     .filter((a) => a.day_of_week === selectedDay)
@@ -140,7 +152,8 @@ export function ScheduleGrid() {
     .filter((a) => a.day_of_week === selectedDay)
     .sort((a, b) => a.time_start.localeCompare(b.time_start));
 
-  const meals = getMeals(selectedDay);
+  const hasDinner = dayActivities.some((a) => a.is_dinner);
+  const meals = getMeals(selectedDay).filter((m) => !(m.name === 'Middag' && hasDinner));
 
   // Insert meal cards into the activity list based on time
   type ListItem =

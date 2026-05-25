@@ -78,7 +78,7 @@ export function ChatClient() {
 
   function formatTime(iso: string) {
     const d = new Date(iso);
-    const h = String(d.getUTCHours() + 2).padStart(2, '0');
+    const h = String((d.getUTCHours() + 2) % 24).padStart(2, '0');
     const m = String(d.getUTCMinutes()).padStart(2, '0');
     return `${h}:${m}`;
   }
@@ -86,7 +86,7 @@ export function ChatClient() {
   return (
     <div className="flex flex-col h-[calc(100vh-160px)]">
       {/* Tabs */}
-      <div className="flex gap-1 px-4 pt-3 pb-2">
+      <div className="flex gap-1 px-4 pt-3 pb-1">
         {(['gruppe', 'stab'] as Tab[]).map((t) => (
           <button
             key={t}
@@ -131,24 +131,42 @@ export function ChatClient() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
-      <form onSubmit={sendMessage} className="px-4 pt-2 pb-1 flex gap-2">
-        <input
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          placeholder={tab === 'gruppe' ? 'Skriv til gruppen…' : 'Skriv til staben…'}
-          className="flex-1 rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-        />
-        <button
-          type="submit"
-          disabled={sending || !body.trim()}
-          className="w-11 h-11 flex items-center justify-center rounded-2xl bg-blue-600 text-white disabled:opacity-40 active:scale-95 transition-all flex-shrink-0"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-          </svg>
-        </button>
-      </form>
+      {/* Sender name + input */}
+      {!senderName ? (
+        <div className="px-4 pt-2 pb-3">
+          <p className="text-center text-sm text-gray-400">
+            Gå til{' '}
+            <a href="/innstillinger" className="text-blue-600 font-semibold underline">
+              Innstillinger
+            </a>{' '}
+            for å sette opp navn før du kan chatte.
+          </p>
+        </div>
+      ) : (
+        <form onSubmit={sendMessage} className="px-4 pt-1 pb-1">
+          <p className="text-[11px] text-gray-400 mb-1.5 pl-1">
+            Sender som <span className="font-semibold text-gray-600">{senderName}</span>
+            {isStaff && <span className="ml-1.5 bg-blue-100 text-blue-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide">Stab</span>}
+          </p>
+          <div className="flex gap-2">
+            <input
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              placeholder={tab === 'gruppe' ? 'Skriv til gruppen…' : 'Skriv til staben…'}
+              className="flex-1 rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            />
+            <button
+              type="submit"
+              disabled={sending || !body.trim()}
+              className="w-11 h-11 flex items-center justify-center rounded-2xl bg-blue-600 text-white disabled:opacity-40 active:scale-95 transition-all flex-shrink-0"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+              </svg>
+            </button>
+          </div>
+        </form>
+      )}
     </div>
   );
 }

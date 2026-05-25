@@ -76,11 +76,11 @@ export function NavBar() {
       {moreOpen && (
         <>
           <div
-            className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm"
+            className="fixed inset-0 z-[999] bg-black/30 backdrop-blur-sm"
             onClick={() => setMoreOpen(false)}
           />
           <div
-            className="fixed bottom-0 left-0 right-0 z-[998] bg-white rounded-t-3xl max-w-lg mx-auto"
+            className="fixed bottom-0 left-0 right-0 z-[1000] bg-white rounded-t-3xl max-w-lg mx-auto"
             style={{
               paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)',
               boxShadow: '0 -4px 32px rgba(0,0,0,0.12)',

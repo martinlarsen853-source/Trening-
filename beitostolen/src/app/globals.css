@@ -15,3 +15,35 @@ body {
 * {
   box-sizing: border-box;
 }
+
+/* ── Avslutnings-middag celebration animations ── */
+@keyframes dinner-float-l {
+  0%   { transform: translateY(0)     scale(1)   rotate(0deg);   opacity: 1; }
+  100% { transform: translateY(-75px) scale(0.3) rotate(-300deg); opacity: 0; }
+}
+@keyframes dinner-float-r {
+  0%   { transform: translateY(0)     scale(1)   rotate(0deg);   opacity: 1; }
+  100% { transform: translateY(-75px) scale(0.3) rotate(340deg);  opacity: 0; }
+}
+@keyframes dinner-float-u {
+  0%   { transform: translateY(0)     scale(1.1) rotate(0deg);   opacity: 1; }
+  60%  { opacity: 0.9; }
+  100% { transform: translateY(-80px) scale(0.2) rotate(180deg);  opacity: 0; }
+}
+@keyframes dinner-glow {
+  0%,100% { box-shadow: 0 0 22px 6px rgba(251,146,60,0.50), 0 2px 8px rgba(0,0,0,0.04); border-color: #fdba74; }
+  20%      { box-shadow: 0 0 22px 6px rgba(236,72,153,0.50), 0 2px 8px rgba(0,0,0,0.04); border-color: #f9a8d4; }
+  40%      { box-shadow: 0 0 22px 6px rgba(168,85,247,0.50), 0 2px 8px rgba(0,0,0,0.04); border-color: #d8b4fe; }
+  60%      { box-shadow: 0 0 22px 6px rgba(59,130,246,0.50), 0 2px 8px rgba(0,0,0,0.04); border-color: #93c5fd; }
+  80%      { box-shadow: 0 0 22px 6px rgba(234,179,8,0.55),  0 2px 8px rgba(0,0,0,0.04); border-color: #fde047; }
+}
+@keyframes dinner-shimmer {
+  0%   { transform: translateX(-160%) skewX(-14deg); }
+  100% { transform: translateX(320%)  skewX(-14deg); }
+}
+@keyframes dinner-pulse-bg {
+  0%,100% { background-color: rgba(255,237,213,0.70); }
+  25%      { background-color: rgba(253,224,232,0.70); }
+  50%      { background-color: rgba(243,232,255,0.70); }
+  75%      { background-color: rgba(254,249,195,0.70); }
+}

@@ -14,7 +14,7 @@ type Props = {
 export function MapModal({ location, buildingId, onClose }: Props) {
   const useFull = FULL_ONLY.has(buildingId);
   // inner map aspect: 826/960 ≈ 0.86  |  full map aspect: 920/1080 ≈ 0.85
-  const aspect = useFull ? '920/1080' : '826/960';
+  const aspect = useFull ? '922/1152' : '845/1004';
 
   return (
     <div

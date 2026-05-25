@@ -6,7 +6,10 @@ import { supabase, type Activity, type ActivityStatus, type StaffMember, type Ro
 import { StaffAvatar } from './StaffAvatar';
 import { ActivityEditModal } from './ActivityEditModal';
 import { AttendanceModal } from './AttendanceModal';
-import { MapPin, MessageCircle, Users, Clock, ChevronRight } from 'lucide-react';
+import { MapPin, MessageCircle, Users, Clock, ChevronRight, Map } from 'lucide-react';
+import { StaffSpotlightModal } from './StaffSpotlightModal';
+import { MapModal } from './MapModal';
+import { LOCATION_TO_BUILDING } from '@/lib/locationMap';
 import { format } from 'date-fns';
 import { nb } from 'date-fns/locale';
 import { DagsformWidget } from './DagsformWidget';
@@ -137,131 +140,162 @@ function ActivityDetailModal({ activity, liveStatus, staffMember, children, isLe
   onClose: () => void;
 }) {
   const [showStatusPicker, setShowStatusPicker] = useState(false);
+  const [spotlight, setSpotlight] = useState<{ name: string; photoUrl: string | null } | null>(null);
+  const [showMap, setShowMap] = useState(false);
 
   const isAvlyst = liveStatus?.status === 'avlyst';
   const isCurrent = toMins(activity.time_start) <= nowMins() && toMins(activity.time_end) >= nowMins();
   const displayName = staffMember?.name ?? activity.staff_name;
   const load = activity.load_level ? LOAD[activity.load_level] : null;
   const statusMeta = liveStatus ? STATUS_META[liveStatus.status] : null;
+  const buildingId = activity.location ? LOCATION_TO_BUILDING[activity.location] : undefined;
 
   return (
-    <div className="fixed inset-0 z-[300] bg-black/70 backdrop-blur-sm flex items-end" onClick={onClose}>
-      <div
-        className="w-full bg-white rounded-t-3xl max-w-lg mx-auto overflow-y-auto"
-        style={{ maxHeight: '92vh' }}
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Handle */}
-        <div className="flex justify-center pt-3 pb-2 sticky top-0 bg-white z-10">
-          <div className="w-10 h-1 bg-gray-200 rounded-full" />
-        </div>
-
-        <div className="px-5 pb-6">
-          {/* Header */}
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                {statusMeta ? (
-                  <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full ${statusMeta.bg} ${statusMeta.text}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${statusMeta.dot}`} />{statusMeta.label}
-                    {liveStatus?.note && <span className="font-normal"> · {liveStatus.note}</span>}
-                  </span>
-                ) : isCurrent ? (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700">
-                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />Pågår nå
-                  </span>
-                ) : null}
-              </div>
-              <h2 className={`text-2xl font-black ${isAvlyst ? 'line-through text-gray-400' : 'text-gray-900'}`}>
-                {activity.name}
-              </h2>
-              <p className="text-sm text-gray-500 mt-0.5">
-                {activity.time_start.slice(0, 5)} – {activity.time_end.slice(0, 5)}
-                {isCurrent && !isAvlyst && (() => { const r = formatRemaining(activity.time_end); return r ? ` · ${r}` : ''; })()}
-                {!isCurrent && !isAvlyst && (() => { const u = formatUntil(activity.time_start); return u ? ` · Starter ${u}` : ''; })()}
-              </p>
-            </div>
-            <button onClick={onClose} className="text-gray-400 text-2xl leading-none w-8 h-8 flex items-center justify-center flex-shrink-0">×</button>
+    <>
+      <div className="fixed inset-0 z-[300] bg-black/70 backdrop-blur-sm flex items-end" onClick={onClose}>
+        <div
+          className="w-full bg-white rounded-t-3xl max-w-lg mx-auto overflow-y-auto"
+          style={{ maxHeight: '92vh' }}
+          onClick={e => e.stopPropagation()}
+        >
+          {/* Handle */}
+          <div className="flex justify-center pt-3 pb-2 sticky top-0 bg-white z-10">
+            <div className="w-10 h-1 bg-gray-200 rounded-full" />
           </div>
 
-          {/* Load + location */}
-          <div className="flex flex-wrap gap-2 mb-4">
-            {activity.location && (
-              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-600 bg-gray-100 px-3 py-1.5 rounded-full">
-                <MapPin size={12} className="text-blue-500" />{activity.location}
-              </span>
-            )}
-            {load && (
-              <span className={`inline-flex items-center text-xs font-semibold px-3 py-1.5 rounded-full ${load.bg} ${load.text}`}>
-                {load.label}
-              </span>
-            )}
-          </div>
-
-          {/* Staff */}
-          {displayName && (
-            <div className="flex items-center gap-3 mb-5 bg-gray-50 rounded-2xl px-4 py-3">
-              <StaffAvatar name={displayName} photoUrl={staffMember?.photo_url ?? null} size="sm" />
+          <div className="px-5 pb-6">
+            {/* Header */}
+            <div className="flex items-start justify-between mb-4">
               <div>
-                <p className="text-xs text-gray-400 font-medium">Ansvarlig</p>
-                <p className="font-semibold text-gray-900 text-sm">{displayName}</p>
-                {staffMember?.title && <p className="text-xs text-gray-500">{staffMember.title}</p>}
+                <div className="flex items-center gap-2 mb-1">
+                  {statusMeta ? (
+                    <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full ${statusMeta.bg} ${statusMeta.text}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${statusMeta.dot}`} />{statusMeta.label}
+                      {liveStatus?.note && <span className="font-normal"> · {liveStatus.note}</span>}
+                    </span>
+                  ) : isCurrent ? (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />Pågår nå
+                    </span>
+                  ) : null}
+                </div>
+                <h2 className={`text-2xl font-black ${isAvlyst ? 'line-through text-gray-400' : 'text-gray-900'}`}>
+                  {activity.name}
+                </h2>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  {activity.time_start.slice(0, 5)} – {activity.time_end.slice(0, 5)}
+                  {isCurrent && !isAvlyst && (() => { const r = formatRemaining(activity.time_end); return r ? ` · ${r}` : ''; })()}
+                  {!isCurrent && !isAvlyst && (() => { const u = formatUntil(activity.time_start); return u ? ` · Starter ${u}` : ''; })()}
+                </p>
               </div>
+              <button onClick={onClose} className="text-gray-400 text-2xl leading-none w-8 h-8 flex items-center justify-center flex-shrink-0">×</button>
             </div>
-          )}
 
-          {/* Children attending */}
-          {children.length > 0 && (
-            <div className="mb-5">
-              <p className="text-[10px] font-bold tracking-widest text-gray-400 uppercase mb-2">
-                <Users size={10} className="inline mr-1" />Barn i gruppen
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {children.map(c => (
-                  <span key={c.id} className="text-sm font-semibold bg-blue-50 text-blue-700 px-3 py-1 rounded-full">
-                    {c.child_name}
-                  </span>
-                ))}
-              </div>
+            {/* Load + location + kart */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              {activity.location && (
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-600 bg-gray-100 px-3 py-1.5 rounded-full">
+                  <MapPin size={12} className="text-blue-500" />{activity.location}
+                </span>
+              )}
+              {load && (
+                <span className={`inline-flex items-center text-xs font-semibold px-3 py-1.5 rounded-full ${load.bg} ${load.text}`}>
+                  {load.label}
+                </span>
+              )}
+              {buildingId && (
+                <button
+                  onClick={() => setShowMap(true)}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-full active:scale-95 transition-transform"
+                >
+                  <Map size={11} />Vis på kart
+                </button>
+              )}
             </div>
-          )}
 
-          {/* Leder actions */}
-          {isLeder && (
-            <div className="flex gap-2">
-              <button onClick={() => setShowStatusPicker(true)}
-                className="flex-1 py-3 rounded-2xl bg-gray-100 text-gray-700 font-semibold text-sm active:scale-95 transition-all">
-                Sett status
+            {/* Staff — tappable for spotlight */}
+            {displayName && (
+              <button
+                onClick={() => setSpotlight({ name: displayName, photoUrl: staffMember?.photo_url ?? null })}
+                className="flex items-center gap-3 mb-5 bg-gray-50 rounded-2xl px-4 py-3 w-full text-left active:scale-[0.98] transition-transform"
+              >
+                <StaffAvatar name={displayName} photoUrl={staffMember?.photo_url ?? null} size="lg" />
+                <div className="flex-1">
+                  <p className="text-xs text-gray-400 font-medium">Ansvarlig — trykk for stort bilde</p>
+                  <p className="font-semibold text-gray-900 text-sm">{displayName}</p>
+                  {staffMember?.title && <p className="text-xs text-gray-500">{staffMember.title}</p>}
+                </div>
               </button>
-              {onAttendance && (
-                <button onClick={onAttendance}
+            )}
+
+            {/* Children attending */}
+            {children.length > 0 && (
+              <div className="mb-5">
+                <p className="text-[10px] font-bold tracking-widest text-gray-400 uppercase mb-2">
+                  <Users size={10} className="inline mr-1" />Barn i gruppen
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {children.map(c => (
+                    <span key={c.id} className="text-sm font-semibold bg-blue-50 text-blue-700 px-3 py-1 rounded-full">
+                      {c.child_name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Leder actions */}
+            {isLeder && (
+              <div className="flex gap-2">
+                <button onClick={() => setShowStatusPicker(true)}
                   className="flex-1 py-3 rounded-2xl bg-gray-100 text-gray-700 font-semibold text-sm active:scale-95 transition-all">
-                  Fremmøte
+                  Sett status
                 </button>
-              )}
-              {onEdit && (
-                <button onClick={onEdit}
-                  className="flex-1 py-3 rounded-2xl bg-blue-600 text-white font-bold text-sm active:scale-95 transition-all">
-                  Rediger
-                </button>
-              )}
-            </div>
-          )}
+                {onAttendance && (
+                  <button onClick={onAttendance}
+                    className="flex-1 py-3 rounded-2xl bg-gray-100 text-gray-700 font-semibold text-sm active:scale-95 transition-all">
+                    Fremmøte
+                  </button>
+                )}
+                {onEdit && (
+                  <button onClick={onEdit}
+                    className="flex-1 py-3 rounded-2xl bg-blue-600 text-white font-bold text-sm active:scale-95 transition-all">
+                    Rediger
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
+
+        {showStatusPicker && (
+          <StatusPicker
+            activityId={activity.id}
+            current={liveStatus?.status ?? null}
+            note={liveStatus?.note ?? null}
+            staffName={staffName}
+            date={date}
+            onSave={s => { onStatusSave(s); }}
+            onClose={() => setShowStatusPicker(false)}
+          />
+        )}
       </div>
 
-      {showStatusPicker && (
-        <StatusPicker
-          activityId={activity.id}
-          current={liveStatus?.status ?? null}
-          note={liveStatus?.note ?? null}
-          staffName={staffName}
-          date={date}
-          onSave={s => { onStatusSave(s); }}
-          onClose={() => setShowStatusPicker(false)}
+      {spotlight && (
+        <StaffSpotlightModal
+          name={spotlight.name}
+          photoUrl={spotlight.photoUrl}
+          onClose={() => setSpotlight(null)}
         />
       )}
-    </div>
+      {showMap && buildingId && (
+        <MapModal
+          location={activity.location!}
+          buildingId={buildingId}
+          onClose={() => setShowMap(false)}
+        />
+      )}
+    </>
   );
 }
 
@@ -578,7 +612,9 @@ export function StatusDashboard() {
   const mins = nowMins();
   const current = activities.find(a => toMins(a.time_start) <= mins && toMins(a.time_end) >= mins) ?? null;
   const nextUpcoming = activities.find(a => toMins(a.time_start) > mins) ?? null;
-  const featured = current ?? nextUpcoming;
+  // After 15 min into current activity, promote next activity to featured
+  const isEarlyInCurrent = current ? (mins - toMins(current.time_start)) <= 15 : false;
+  const featured = (current && isEarlyInCurrent) ? current : (nextUpcoming ?? current);
 
   return (
     <div className="px-4 pt-4 pb-8 flex flex-col gap-4">

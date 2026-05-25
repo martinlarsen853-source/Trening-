@@ -299,9 +299,9 @@ function ActivityDetailModal({ activity, liveStatus, staffMember, children, isLe
   );
 }
 
-// ─── Next activity card ───────────────────────────────────────────────────────
+// ─── Home activity card (matches ActivityCard visual style) ──────────────────
 
-function NextActivityCard({ activity, liveStatus, staffMember, isCurrent, onClick }: {
+function HomeActivityCard({ activity, liveStatus, staffMember, isCurrent, onClick }: {
   activity: Activity;
   liveStatus: ActivityStatus | null;
   staffMember: StaffMember | null;
@@ -312,76 +312,85 @@ function NextActivityCard({ activity, liveStatus, staffMember, isCurrent, onClic
   const displayName = staffMember?.name ?? activity.staff_name;
   const load = activity.load_level ? LOAD[activity.load_level] : null;
   const statusMeta = liveStatus ? STATUS_META[liveStatus.status] : null;
-
-  const timeLabel = isCurrent
-    ? formatRemaining(activity.time_end)
-    : formatUntil(activity.time_start);
+  const timeLabel = isCurrent ? formatRemaining(activity.time_end) : formatUntil(activity.time_start);
 
   return (
-    <button
-      onClick={onClick}
-      className={`w-full text-left rounded-3xl p-5 shadow-lg active:scale-[0.98] transition-all ${
-        isAvlyst ? 'bg-gray-200' : isCurrent
-          ? 'bg-gradient-to-br from-emerald-500 to-teal-700 shadow-emerald-500/25'
-          : 'bg-gradient-to-br from-blue-500 to-indigo-700 shadow-blue-500/25'
-      }`}
-    >
-      {/* Top row: label + status */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <span className={`text-[10px] font-bold tracking-widest uppercase ${isAvlyst ? 'text-gray-500' : 'text-white/70'}`}>
-            {isCurrent ? 'Pågår nå' : 'Neste aktivitet'}
+    <div>
+      {/* Label row above card */}
+      <div className="flex items-center gap-2 mb-2 px-1">
+        <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+          {isCurrent ? 'Pågår nå' : 'Neste aktivitet'}
+        </span>
+        {isCurrent && !isAvlyst && (
+          <span className="inline-flex items-center gap-1 bg-red-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">
+            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+            LIVE
           </span>
-          {isCurrent && !isAvlyst && (
-            <span className="inline-flex items-center gap-1 bg-red-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">
-              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-              LIVE
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {statusMeta && (
-            <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${statusMeta.bg} ${statusMeta.text}`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${statusMeta.dot}`} />{statusMeta.label}
-              {liveStatus?.note && <span className="font-normal"> · {liveStatus.note}</span>}
-            </span>
-          )}
-        </div>
+        )}
+        {statusMeta && (
+          <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${statusMeta.bg} ${statusMeta.text}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${statusMeta.dot}`} />
+            {statusMeta.label}
+            {liveStatus?.note && <span className="font-normal"> · {liveStatus.note}</span>}
+          </span>
+        )}
+        {timeLabel && !isAvlyst && (
+          <span className="text-xs text-gray-400 ml-auto font-medium">{timeLabel}</span>
+        )}
       </div>
 
-      {/* Activity name */}
-      <h3 className={`text-2xl font-black leading-tight mb-1 ${isAvlyst ? 'line-through text-gray-500' : 'text-white'}`}>
-        {activity.name}
-      </h3>
-
-      {/* Time */}
-      <p className={`text-sm mb-4 ${isAvlyst ? 'text-gray-500' : 'text-white/60'}`}>
-        {activity.time_start.slice(0, 5)} – {activity.time_end.slice(0, 5)}
-        {timeLabel && !isAvlyst && <span className="ml-1 font-semibold text-white/80">· {timeLabel}</span>}
-      </p>
-
-      {/* Bottom row: location + staff + chevron */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          {activity.location && (
-            <span className={`text-xs flex items-center gap-1 ${isAvlyst ? 'text-gray-500' : 'text-white/60'}`}>
-              <MapPin size={11} />{activity.location}
+      {/* Card */}
+      <button
+        onClick={onClick}
+        className={`w-full text-left rounded-3xl border p-5 transition-all active:scale-[0.99] shadow-[0_2px_8px_rgba(0,0,0,0.04)] ${
+          isAvlyst
+            ? 'border-gray-200 bg-gray-100'
+            : isCurrent
+            ? 'border-emerald-200 bg-white hover:shadow-[0_4px_16px_rgba(0,0,0,0.07)]'
+            : 'border-gray-100 bg-white hover:border-gray-200 hover:shadow-[0_4px_16px_rgba(0,0,0,0.07)]'
+        }`}
+      >
+        <div className="flex items-start gap-3">
+          {/* Time block */}
+          <div className={`flex flex-col items-center justify-center rounded-2xl px-3 py-2 min-w-[68px] ${
+            isCurrent && !isAvlyst
+              ? 'bg-gradient-to-br from-emerald-50 to-emerald-100'
+              : 'bg-gradient-to-br from-blue-50 to-blue-100'
+          }`}>
+            <span className={`text-base font-bold tabular-nums leading-tight ${isCurrent && !isAvlyst ? 'text-emerald-900' : 'text-blue-900'}`}>
+              {activity.time_start.slice(0, 5)}
             </span>
-          )}
-          {load && !isAvlyst && (
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${load.bg} ${load.text}`}>
-              {load.label}
+            <span className={`text-[10px] font-medium tabular-nums tracking-wide ${isCurrent && !isAvlyst ? 'text-emerald-500' : 'text-blue-500'}`}>
+              — {activity.time_end.slice(0, 5)}
             </span>
-          )}
+          </div>
+
+          <div className="flex-1 min-w-0 pt-0.5">
+            <p className={`font-bold text-base leading-tight tracking-tight ${isAvlyst ? 'line-through text-gray-400' : 'text-gray-900'}`}>
+              {activity.name}
+            </p>
+            {load && (
+              <span className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1 ${load.bg} ${load.text}`}>
+                {activity.load_level === 'lav' ? '🟢 Lav belastning'
+                  : activity.load_level === 'middels' ? '🟡 Middels belastning'
+                  : '🔴 Høy belastning'}
+              </span>
+            )}
+            {activity.location && (
+              <p className="text-sm text-gray-500 mt-0.5">{activity.location}</p>
+            )}
+            {displayName && (
+              <div className="flex items-center gap-1.5 mt-1.5">
+                <StaffAvatar name={displayName} photoUrl={staffMember?.photo_url ?? null} size="sm" />
+                <span className="text-xs text-gray-600 font-medium">{displayName.split(' ')[0]}</span>
+              </div>
+            )}
+          </div>
+
+          <ChevronRight size={18} className="text-gray-300 flex-shrink-0 mt-1" />
         </div>
-        <div className="flex items-center gap-2">
-          {displayName && (
-            <StaffAvatar name={displayName} photoUrl={staffMember?.photo_url ?? null} size="sm" />
-          )}
-          <ChevronRight size={16} className={isAvlyst ? 'text-gray-400' : 'text-white/50'} />
-        </div>
-      </div>
-    </button>
+      </button>
+    </div>
   );
 }
 
@@ -635,48 +644,18 @@ export function StatusDashboard() {
 
       {/* Activity card */}
       {loading ? (
-        <div className="rounded-3xl bg-blue-100 h-44 animate-pulse" />
+        <div className="rounded-3xl bg-gray-100 h-36 animate-pulse" />
       ) : featured ? (
-        <NextActivityCard
+        <HomeActivityCard
           activity={featured}
           liveStatus={statuses[featured.id] ?? null}
           staffMember={featured.staff_id ? (staffMap[featured.staff_id] ?? null) : null}
-          isCurrent={current !== null}
+          isCurrent={current !== null && featured.id === current.id}
           onClick={() => setDetailActivity(featured)}
         />
       ) : (
         <NoActivityCard />
       )}
-
-      {/* Later today */}
-      {!loading && (() => {
-        const laterToday = activities.filter(
-          (a) => a.id !== featured?.id && toMins(a.time_start) > mins
-        );
-        if (laterToday.length === 0) return null;
-        return (
-          <div>
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">Senere i dag</p>
-            <div className="flex flex-col gap-2">
-              {laterToday.map((a) => (
-                <button
-                  key={a.id}
-                  onClick={() => setDetailActivity(a)}
-                  className="w-full flex items-center gap-3 bg-white rounded-2xl border border-gray-100 px-4 py-3 text-left active:scale-[0.99] transition-transform shadow-[0_1px_4px_rgba(0,0,0,0.04)]"
-                >
-                  <span className="text-sm font-bold tabular-nums text-blue-700 min-w-[42px]">
-                    {a.time_start.slice(0, 5)}
-                  </span>
-                  <span className="flex-1 text-sm font-semibold text-gray-800 truncate">{a.name}</span>
-                  {a.location && (
-                    <span className="text-xs text-gray-400 truncate max-w-[100px]">{a.location}</span>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-        );
-      })()}
 
       {/* Messages + Fellesrom */}
       <MessagesCard />

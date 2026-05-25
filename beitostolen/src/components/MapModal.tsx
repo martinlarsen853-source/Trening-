@@ -29,8 +29,8 @@ export function MapModal({ location, buildingId, onClose }: Props) {
       </div>
 
       <div className="flex-1 px-3 pb-6 overflow-hidden flex items-center justify-center">
-        <div className="w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl bg-[#f0e6d8]"
-          style={{ aspectRatio: '800/630', maxHeight: 'calc(100dvh - 140px)' }}>
+        <div className="w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl bg-[#f3e6ce]"
+          style={{ aspectRatio: '1000/1110', maxHeight: 'calc(100dvh - 140px)' }}>
           <CampusMap activeBuilding={buildingId} />
         </div>
       </div>

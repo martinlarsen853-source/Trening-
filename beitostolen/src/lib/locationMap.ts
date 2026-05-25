@@ -29,6 +29,7 @@ const PATTERNS: [string, string][] = [
   ['lege',             'lege'],
   ['hjelpemiddelbygg', 'hjelpemiddelbygg'],
   ['hovedbygg',        'hovedbygg'],
+  ['bamseli',          'bamseli'],
 ];
 
 export function getBuilding(location: string | null | undefined, fallbackName?: string | null): string | undefined {

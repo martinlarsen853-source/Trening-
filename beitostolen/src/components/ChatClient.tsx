@@ -22,6 +22,7 @@ export function ChatClient() {
   const [isStaff, setIsStaff] = useState(false);
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Load user info from localStorage (auth is disabled)
   useEffect(() => {
@@ -74,6 +75,23 @@ export function ChatClient() {
     });
     setBody('');
     setSending(false);
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
+  }
+
+  function handleTextareaChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
+    setBody(e.target.value);
+    const el = e.target;
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 150) + 'px';
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage(e as unknown as React.FormEvent);
+    }
   }
 
   function formatTime(iso: string) {
@@ -161,12 +179,16 @@ export function ChatClient() {
             Sender som <span className="font-semibold text-gray-600">{senderName}</span>
             {isStaff && <span className="ml-1.5 bg-blue-100 text-blue-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide">Stab</span>}
           </p>
-          <div className="flex gap-2">
-            <input
+          <div className="flex gap-2 items-end">
+            <textarea
+              ref={textareaRef}
               value={body}
-              onChange={(e) => setBody(e.target.value)}
+              onChange={handleTextareaChange}
+              onKeyDown={handleKeyDown}
               placeholder={tab === 'gruppe' ? 'Skriv til gruppen…' : 'Skriv til staben…'}
-              className="flex-1 rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              rows={1}
+              className="flex-1 min-w-0 rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 resize-none overflow-hidden leading-snug"
+              style={{ maxHeight: 150 }}
             />
             <button
               type="submit"

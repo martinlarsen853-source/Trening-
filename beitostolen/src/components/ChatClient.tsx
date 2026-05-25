@@ -85,8 +85,18 @@ export function ChatClient() {
 
   return (
     <div
-      className="flex flex-col overflow-hidden"
-      style={{ height: 'calc(100dvh - 222px - env(safe-area-inset-bottom, 0px))' }}
+      style={{
+        position: 'fixed',
+        top: 110,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        paddingBottom: 'calc(57px + env(safe-area-inset-bottom, 0px))',
+        backgroundColor: '#fff',
+        zIndex: 10,
+      }}
     >
       {/* Tabs */}
       <div className="flex gap-1 px-4 pt-3 pb-1">

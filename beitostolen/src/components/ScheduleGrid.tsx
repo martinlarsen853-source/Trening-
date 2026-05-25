@@ -103,11 +103,18 @@ export function ScheduleGrid() {
       .then((d) => {
         const fetched: TimeplanDay[] = d.days ?? [];
         if (staticDays) {
-          // Merge only the dynamic fields into the static structure
-          const dynMap = new Map<string, Pick<TimeplanActivity, 'myAbsence' | 'relevantAbsences' | 'staff'>>();
+          // Merge dynamic fields (absences, staff, load_level) into the static structure
+          const dynMap = new Map<string, Pick<TimeplanActivity, 'myAbsence' | 'relevantAbsences' | 'staff' | 'load_level' | 'staff_id' | 'staff_name'>>();
           for (const day of fetched) {
             for (const act of [...day.main, ...day.fritid]) {
-              dynMap.set(act.id, { myAbsence: act.myAbsence, relevantAbsences: act.relevantAbsences, staff: act.staff });
+              dynMap.set(act.id, {
+                myAbsence: act.myAbsence,
+                relevantAbsences: act.relevantAbsences,
+                staff: act.staff,
+                load_level: act.load_level,
+                staff_id: act.staff_id,
+                staff_name: act.staff_name,
+              });
             }
           }
           setDays((prev) => prev.map((day) => {

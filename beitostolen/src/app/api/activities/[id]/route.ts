@@ -29,6 +29,11 @@ export async function PATCH(
 ) {
   const { id } = await params;
   const body = await req.json() as {
+    name?: string;
+    time_start?: string;
+    time_end?: string;
+    location?: string | null;
+    notes?: string | null;
     load_level?: string | null;
     staffIds?: string[];
     transition_flags?: string[];
@@ -37,6 +42,11 @@ export async function PATCH(
   const supabase = getSupabase();
 
   const activityUpdates: Record<string, unknown> = {};
+  if ('name' in body && body.name) activityUpdates.name = body.name;
+  if ('time_start' in body && body.time_start) activityUpdates.time_start = body.time_start;
+  if ('time_end' in body && body.time_end) activityUpdates.time_end = body.time_end;
+  if ('location' in body) activityUpdates.location = body.location ?? null;
+  if ('notes' in body) activityUpdates.notes = body.notes ?? null;
   if ('load_level' in body) activityUpdates.load_level = body.load_level ?? null;
   if ('transition_flags' in body) activityUpdates.transition_flags = body.transition_flags ?? [];
   if ('transition_note' in body) activityUpdates.transition_note = body.transition_note ?? null;

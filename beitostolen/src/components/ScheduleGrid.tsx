@@ -452,7 +452,7 @@ export function ScheduleGrid() {
           activity={editActivity}
           allStaff={staff}
           onClose={() => setEditActivity(null)}
-          onSaved={({ load_level, staffIds, transition_flags, transition_note }) => {
+          onSaved={({ name, time_start, time_end, location, notes, load_level, staffIds, transition_flags, transition_note }) => {
             const staffId = staffIds[0] ?? null;
             const staffMember = staff.find((s) => s.id === staffId);
             const updatedStaff = staffIds
@@ -462,7 +462,7 @@ export function ScheduleGrid() {
             setDays((prev) => prev.map((day) => {
               const patch = (a: TimeplanActivity) =>
                 a.id === editActivity.id
-                  ? { ...a, load_level, staff_id: staffId, staff_name: staffMember?.name ?? null, staff: updatedStaff, transition_flags, transition_note }
+                  ? { ...a, name, time_start, time_end, location, notes, load_level, staff_id: staffId, staff_name: staffMember?.name ?? null, staff: updatedStaff, transition_flags, transition_note }
                   : a;
               return { ...day, main: day.main.map(patch), fritid: day.fritid.map(patch) };
             }));

@@ -12,28 +12,43 @@ const LOAD_OPTIONS = [
   { value: 'høy',     label: 'Høy',     bg: 'bg-red-500',   ring: 'ring-red-400'   },
 ] as const;
 
+export type ActivityEditUpdates = {
+  name: string;
+  time_start: string;
+  time_end: string;
+  location: string | null;
+  notes: string | null;
+  load_level: Activity['load_level'];
+  staffIds: string[];
+  transition_flags: string[];
+  transition_note: string | null;
+};
+
 export function ActivityEditModal({
   activity,
   allStaff,
   onClose,
   onSaved,
 }: {
-  activity: Pick<Activity | TimeplanActivity, 'id' | 'name' | 'time_start' | 'time_end' | 'load_level' | 'transition_flags' | 'transition_note'>;
+  activity: Pick<Activity | TimeplanActivity, 'id' | 'name' | 'time_start' | 'time_end' | 'location' | 'notes' | 'load_level' | 'transition_flags' | 'transition_note'>;
   allStaff: StaffMember[];
   onClose: () => void;
-  onSaved: (updates: { load_level: Activity['load_level']; staffIds: string[]; transition_flags: string[]; transition_note: string | null }) => void;
+  onSaved: (updates: ActivityEditUpdates) => void;
 }) {
   const [staffList, setStaffList] = useState<StaffMember[]>(allStaff);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [actName, setActName] = useState(activity.name);
+  const [timeStart, setTimeStart] = useState(activity.time_start.slice(0, 5));
+  const [timeEnd, setTimeEnd] = useState(activity.time_end.slice(0, 5));
+  const [location, setLocation] = useState(activity.location ?? '');
+  const [notes, setNotes] = useState(activity.notes ?? '');
   const [loadLevel, setLoadLevel] = useState<Activity['load_level']>(activity.load_level);
   const [flags, setFlags] = useState<Set<string>>(new Set(activity.transition_flags ?? []));
   const [transNote, setTransNote] = useState<string>(activity.transition_note ?? '');
   const [saving, setSaving] = useState(false);
 
-  // Keep staffList in sync if allStaff prop changes (e.g. parent fetches later)
   useEffect(() => { setStaffList(allStaff); }, [allStaff]);
 
-  // Load current staff assignments (server-side to avoid client CORS issues)
   useEffect(() => {
     fetch(`/api/activities/${activity.id}`)
       .then(r => r.json())
@@ -52,13 +67,19 @@ export function ActivityEditModal({
     setSaving(true);
     const transition_flags = [...flags];
     const transition_note = transNote.trim() || null;
+    const name = actName.trim() || activity.name;
+    const time_start = timeStart + ':00';
+    const time_end = timeEnd + ':00';
+    const locationVal = location.trim() || null;
+    const notesVal = notes.trim() || null;
+
     await fetch(`/api/activities/${activity.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ load_level: loadLevel, staffIds: [...selected], transition_flags, transition_note }),
+      body: JSON.stringify({ name, time_start, time_end, location: locationVal, notes: notesVal, load_level: loadLevel, staffIds: [...selected], transition_flags, transition_note }),
     });
     setSaving(false);
-    onSaved({ load_level: loadLevel, staffIds: [...selected], transition_flags, transition_note });
+    onSaved({ name, time_start, time_end, location: locationVal, notes: notesVal, load_level: loadLevel, staffIds: [...selected], transition_flags, transition_note });
     onClose();
   }
 
@@ -67,7 +88,7 @@ export function ActivityEditModal({
       <div className="fixed inset-0 z-[1000] bg-black/70 backdrop-blur-sm flex items-end" onClick={onClose}>
         <div
           className="w-full bg-white rounded-t-3xl max-w-lg mx-auto overflow-y-auto"
-          style={{ maxHeight: '85vh' }}
+          style={{ maxHeight: '92vh' }}
           onClick={e => e.stopPropagation()}
         >
           <div className="flex justify-center pt-3 pb-1">
@@ -76,13 +97,62 @@ export function ActivityEditModal({
 
           <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
             <div>
-              <p className="font-black text-gray-900">{activity.name}</p>
-              <p className="text-xs text-gray-400">{activity.time_start.slice(0, 5)} – {activity.time_end.slice(0, 5)}</p>
+              <p className="font-black text-gray-900">Rediger aktivitet</p>
+              <p className="text-xs text-gray-400">{activity.name}</p>
             </div>
             <button onClick={onClose}><X size={20} className="text-gray-400" /></button>
           </div>
 
           <div className="px-5 pt-4 pb-6 space-y-6">
+
+            {/* Basic info */}
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Basisinfo</p>
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  value={actName}
+                  onChange={e => setActName(e.target.value)}
+                  placeholder="Aktivitetsnavn"
+                  className="w-full border border-gray-200 rounded-2xl px-4 py-2.5 text-sm font-semibold outline-none focus:border-blue-400"
+                />
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <p className="text-[10px] font-semibold text-gray-400 mb-1 ml-1">Start</p>
+                    <input
+                      type="time"
+                      value={timeStart}
+                      onChange={e => setTimeStart(e.target.value)}
+                      className="w-full border border-gray-200 rounded-2xl px-4 py-2.5 text-sm outline-none focus:border-blue-400"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-[10px] font-semibold text-gray-400 mb-1 ml-1">Slutt</p>
+                    <input
+                      type="time"
+                      value={timeEnd}
+                      onChange={e => setTimeEnd(e.target.value)}
+                      className="w-full border border-gray-200 rounded-2xl px-4 py-2.5 text-sm outline-none focus:border-blue-400"
+                    />
+                  </div>
+                </div>
+                <input
+                  type="text"
+                  value={location}
+                  onChange={e => setLocation(e.target.value)}
+                  placeholder="Sted (valgfritt)"
+                  className="w-full border border-gray-200 rounded-2xl px-4 py-2.5 text-sm outline-none focus:border-blue-400"
+                />
+                <textarea
+                  value={notes}
+                  onChange={e => setNotes(e.target.value)}
+                  placeholder="Notater (valgfritt)"
+                  rows={2}
+                  className="w-full border border-gray-200 rounded-2xl px-4 py-2.5 text-sm outline-none focus:border-blue-400 resize-none"
+                />
+              </div>
+            </div>
+
             {/* Load level */}
             <div>
               <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Belastningsnivå</p>
@@ -105,13 +175,10 @@ export function ActivityEditModal({
 
             {/* Staff selection */}
             <div>
-              <div className="mb-3">
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Hvem leder timen?</p>
-              </div>
-
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Hvem leder timen?</p>
               {staffList.length === 0 ? (
                 <p className="text-sm text-gray-400 text-center py-4">
-                  Ingen ansatte ennå — trykk «Ny ansatt» for å legge til
+                  Ingen ansatte ennå — gå til Ansatte for å legge til
                 </p>
               ) : (
                 <div className="grid grid-cols-3 gap-3">
@@ -174,7 +241,7 @@ export function ActivityEditModal({
             </div>
           </div>
 
-          <div className="px-5 pb-6">
+          <div className="px-5 pb-8">
             <button
               onClick={save}
               disabled={saving}
@@ -185,7 +252,6 @@ export function ActivityEditModal({
           </div>
         </div>
       </div>
-
     </>
   );
 }

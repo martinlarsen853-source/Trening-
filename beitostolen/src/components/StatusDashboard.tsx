@@ -690,9 +690,9 @@ export function StatusDashboard() {
           activity={editActivity}
           allStaff={Object.values(staffMap)}
           onClose={() => setEditActivity(null)}
-          onSaved={({ load_level, staffIds, transition_flags, transition_note }) => {
+          onSaved={({ name, time_start, time_end, location, notes, load_level, staffIds, transition_flags, transition_note }) => {
             setActivities(prev => prev.map(a =>
-              a.id === editActivity.id ? { ...a, load_level, staff_id: staffIds[0] ?? null, transition_flags, transition_note } : a
+              a.id === editActivity.id ? { ...a, name, time_start, time_end, location, notes, load_level, staff_id: staffIds[0] ?? null, transition_flags, transition_note } : a
             ));
           }}
         />

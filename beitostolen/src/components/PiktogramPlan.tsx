@@ -106,7 +106,7 @@ function ArasaacImg({ id, label }: { id: number; label: string }) {
 }
 
 export function PiktogramPlan({ days, childName, weekStart }: Props) {
-  const allDayNums = [...new Set([1, 2, 3, 4, 5, 6, 7, ...days.map(d => d.dayOfWeek)])].sort();
+  const allDayNums = [...new Set(days.map(d => d.dayOfWeek))].sort();
 
   return (
     <div className="overflow-x-auto pb-6" style={{ WebkitOverflowScrolling: 'touch' }}>

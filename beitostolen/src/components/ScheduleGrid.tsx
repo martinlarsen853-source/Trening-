@@ -184,7 +184,7 @@ export function ScheduleGrid() {
     ? meetings.find((m) => m.child.toLowerCase() === childName.toLowerCase() && m.date === selectedDate)
     : null;
 
-  const allDays = [...new Set([1, 2, 3, 4, 5, 6, 7, ...days.map((d) => d.dayOfWeek)])].sort();
+  const allDays = [...new Set(days.map((d) => d.dayOfWeek))].sort();
 
   const dayData = days.find((d) => d.dayOfWeek === selectedDay);
   const dayActivities = (dayData?.main ?? []).filter(

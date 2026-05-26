@@ -115,6 +115,12 @@ export function ActivityCard({ activity, absences, childName, onClick }: Props) 
               <span className="text-xs font-semibold text-amber-700">Sigurd · Alice · Evelina · Marianna · Mia</span>
             </div>
           )}
+          {activity.group_name === 'alle' && (
+            <div className="flex items-center gap-1.5 mt-1">
+              <span className="w-2 h-2 rounded-full bg-gray-400 flex-shrink-0" />
+              <span className="text-xs font-semibold text-gray-600">Cecilie</span>
+            </div>
+          )}
           {activity.is_adult_meeting && (
             <div className="flex items-center gap-1.5 mt-1">
               <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />

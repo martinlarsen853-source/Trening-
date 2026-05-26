@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 import {
   Activity, Calendar, Utensils, MessageCircle,
   MoreHorizontal, Map, Home, Users, Settings, ExternalLink,
@@ -28,6 +29,27 @@ export function NavBar() {
   const pathname = usePathname();
   const router = useRouter();
   const [moreOpen, setMoreOpen] = useState(false);
+  const [chatUnread, setChatUnread] = useState(false);
+
+  useEffect(() => {
+    if (pathname === '/chat') {
+      setChatUnread(false);
+      return;
+    }
+    const senderName = localStorage.getItem('lederMode') === 'true'
+      ? (localStorage.getItem('staffName') || 'Leder')
+      : (localStorage.getItem('parentName') || localStorage.getItem('childName') || '');
+    const seenGroupe = localStorage.getItem('msgSeenAt_gruppe') ?? new Date(0).toISOString();
+    const seenStab = localStorage.getItem('msgSeenAt_stab') ?? new Date(0).toISOString();
+    Promise.all([
+      supabase.from('messages').select('id', { count: 'exact', head: true })
+        .eq('channel', 'gruppe').gt('created_at', seenGroupe).neq('sender_name', senderName),
+      supabase.from('messages').select('id', { count: 'exact', head: true })
+        .eq('channel', 'stab').gt('created_at', seenStab).neq('sender_name', senderName),
+    ]).then(([g, s]) => {
+      setChatUnread((g.count ?? 0) + (s.count ?? 0) > 0);
+    });
+  }, [pathname]);
 
   const isMoreActive = MORE_LINKS.some(l => !l.external && pathname === l.href);
 
@@ -45,6 +67,7 @@ export function NavBar() {
         <div className="flex max-w-lg mx-auto">
           {MAIN_TABS.map(({ href, label, Icon }) => {
             const active = pathname === href;
+            const isChatTab = href === '/chat';
             return (
               <Link
                 key={href}
@@ -53,7 +76,12 @@ export function NavBar() {
                   active ? 'text-blue-600' : 'text-gray-400'
                 }`}
               >
-                <Icon size={24} strokeWidth={active ? 2.5 : 1.8} />
+                <div className="relative">
+                  <Icon size={24} strokeWidth={active ? 2.5 : 1.8} />
+                  {isChatTab && chatUnread && (
+                    <span className="absolute -top-0.5 -right-1 w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-white" />
+                  )}
+                </div>
                 <span className="text-[10px] font-bold leading-none">{label}</span>
               </Link>
             );

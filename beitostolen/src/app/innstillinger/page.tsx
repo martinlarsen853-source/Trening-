@@ -34,12 +34,28 @@ export default function InnstillingerPage() {
   const [lederMode, setLederMode] = useState(false);
   const [staffName, setStaffName] = useState('');
   const [groupName, setGroupName] = useState('Gruppe 2C');
+  const [childName, setChildNameState] = useState('');
+  const [parentName, setParentNameState] = useState('');
 
   useEffect(() => {
     setLederMode(localStorage.getItem('lederMode') === 'true');
     setStaffName(localStorage.getItem('staffName') || '');
     setGroupName(localStorage.getItem('groupName') || 'Gruppe 2C');
+    setChildNameState(localStorage.getItem('childName') || '');
+    setParentNameState(localStorage.getItem('parentName') || '');
   }, []);
+
+  function handleChildName(val: string) {
+    setChildNameState(val);
+    if (val.trim()) localStorage.setItem('childName', val.trim());
+    else localStorage.removeItem('childName');
+  }
+
+  function handleParentName(val: string) {
+    setParentNameState(val);
+    if (val.trim()) localStorage.setItem('parentName', val.trim());
+    else localStorage.removeItem('parentName');
+  }
 
   function toggleLeder(on: boolean) {
     setLederMode(on);
@@ -78,6 +94,30 @@ export default function InnstillingerPage() {
           description="Øker skriftstørrelsen i hele appen"
         />
       </div>
+
+      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">Barnets navn</p>
+      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm px-4 py-3 mb-2">
+        <input
+          type="text"
+          value={childName}
+          onChange={e => handleChildName(e.target.value)}
+          placeholder="F.eks. Evelina"
+          className="w-full text-sm font-semibold text-gray-900 outline-none placeholder:text-gray-300"
+        />
+      </div>
+      <p className="text-xs text-gray-400 mb-4 px-1">Brukes i timeplan, avbud og tilpasninger</p>
+
+      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">Foresattes navn</p>
+      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm px-4 py-3 mb-2">
+        <input
+          type="text"
+          value={parentName}
+          onChange={e => handleParentName(e.target.value)}
+          placeholder="F.eks. Marte Olsen"
+          className="w-full text-sm font-semibold text-gray-900 outline-none placeholder:text-gray-300"
+        />
+      </div>
+      <p className="text-xs text-gray-400 mb-4 px-1">Brukes i fellesrom og chat</p>
 
       <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">Gruppenavn</p>
       <div className="bg-white rounded-3xl border border-gray-100 shadow-sm px-4 py-3 mb-4">
@@ -126,6 +166,13 @@ export default function InnstillingerPage() {
               <div>
                 <p className="font-semibold text-gray-900">Timeplan (leder)</p>
                 <p className="text-sm text-gray-500 mt-0.5">Rediger aktiviteter og belastningsnivå</p>
+              </div>
+              <span className="text-gray-300 text-lg">›</span>
+            </Link>
+            <Link href="/logg" className="flex items-center justify-between px-4 py-4 active:bg-gray-100 transition-colors">
+              <div>
+                <p className="font-semibold text-gray-900">Aktivitetslogg</p>
+                <p className="text-sm text-gray-500 mt-0.5">Se historikk over registrerte aktiviteter</p>
               </div>
               <span className="text-gray-300 text-lg">›</span>
             </Link>

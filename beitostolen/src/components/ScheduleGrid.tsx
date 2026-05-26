@@ -28,10 +28,7 @@ function getMeals(dayOfWeek: number) {
 export function ScheduleGrid() {
   const [childName, setChildName] = useState<string | null>(() => {
     if (typeof window === 'undefined') return null;
-    const stored = localStorage.getItem('childName');
-    if (stored) return stored;
-    localStorage.setItem('childName', 'Evelina');
-    return 'Evelina';
+    return localStorage.getItem('childName') ?? null;
   });
   const [days, setDays] = useState<TimeplanDay[]>([]);
   const [loading, setLoading] = useState(true);

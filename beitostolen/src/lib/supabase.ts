@@ -24,7 +24,7 @@ export type Activity = {
   location: string | null;
   notes: string | null;
   is_fritid: boolean;
-  group_name: 'blå' | 'gul' | null;
+  group_name: 'blå' | 'gul' | 'alle' | null;
   target_child: string | null;
   is_adult_meeting: boolean;
   is_dinner: boolean;

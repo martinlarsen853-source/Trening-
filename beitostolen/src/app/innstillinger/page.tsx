@@ -41,8 +41,8 @@ export default function InnstillingerPage() {
     setLederMode(localStorage.getItem('lederMode') === 'true');
     setStaffName(localStorage.getItem('staffName') || '');
     setGroupName(localStorage.getItem('groupName') || 'Gruppe 2C');
-    setChildNameState(localStorage.getItem('childName') || '');
-    setParentNameState(localStorage.getItem('parentName') || '');
+    setChildNameState(localStorage.getItem('childName') || 'Evelina');
+    setParentNameState(localStorage.getItem('parentName') || 'Martin');
   }, []);
 
   function handleChildName(val: string) {

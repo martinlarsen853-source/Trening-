@@ -536,7 +536,7 @@ function NoActivityCard() {
 export function StatusDashboard() {
   const [childName] = useState<string>(() => {
     if (typeof window === 'undefined') return '';
-    return localStorage.getItem('childName') ?? '';
+    return localStorage.getItem('childName') ?? 'Evelina';
   });
   const isStaff = typeof window !== 'undefined' && localStorage.getItem('lederMode') === 'true';
   const staffName = typeof window !== 'undefined' ? (localStorage.getItem('staffName') || 'Leder') : 'Leder';

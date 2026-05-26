@@ -30,7 +30,7 @@ export function ChatClient() {
     setIsStaff(lederMode);
     const name = lederMode
       ? (localStorage.getItem('staffName') || 'Leder')
-      : (localStorage.getItem('parentName') || localStorage.getItem('childName') || '');
+      : (localStorage.getItem('parentName') || localStorage.getItem('childName') || 'Martin');
     setSenderName(name);
   }, []);
 

@@ -210,7 +210,21 @@ export function ScheduleGrid() {
     return ta.localeCompare(tb);
   });
 
-  if (!childName) return null;
+  if (!childName) return (
+    <div className="px-6 pt-20 flex flex-col items-center text-center gap-3">
+      <p className="text-5xl">👤</p>
+      <p className="text-lg font-bold text-gray-800">Hvem er dette for?</p>
+      <p className="text-sm text-gray-500 max-w-xs">
+        Gå til Innstillinger og skriv inn barnets navn for å se timeplanen.
+      </p>
+      <a
+        href="/innstillinger"
+        className="mt-2 bg-blue-600 text-white px-6 py-3 rounded-2xl text-sm font-semibold active:scale-95 transition-transform"
+      >
+        Gå til Innstillinger →
+      </a>
+    </div>
+  );
 
   return (
     <div>

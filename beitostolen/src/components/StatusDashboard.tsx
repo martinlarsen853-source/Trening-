@@ -650,7 +650,9 @@ export function StatusDashboard() {
     <div className="px-4 pt-4 pb-8 flex flex-col gap-4">
       {/* Greeting */}
       <div>
-        <h2 className="text-xl font-bold text-gray-900">Hei, {childName.split(' ')[0]} 👋</h2>
+        <h2 className="text-xl font-bold text-gray-900">
+          {childName ? `Hei, ${childName.split(' ')[0]} 👋` : 'Hei! 👋'}
+        </h2>
         <p className="text-sm text-gray-500 capitalize">
           {format(cestDate(), 'EEEE d. MMMM', { locale: nb })}
         </p>

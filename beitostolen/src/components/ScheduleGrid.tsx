@@ -9,7 +9,8 @@ import { ActivityEditModal } from './ActivityEditModal';
 import { StaffAvatar } from './StaffAvatar';
 import { format, addDays, addWeeks, startOfWeek } from 'date-fns';
 import { nb } from 'date-fns/locale';
-import { Utensils, MessageCircle, Pencil, X } from 'lucide-react';
+import { Utensils, MessageCircle, Pencil, X, LayoutGrid, List } from 'lucide-react';
+import { PiktogramPlan } from './PiktogramPlan';
 
 const DAYS = ['Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør', 'Søn'];
 
@@ -52,6 +53,7 @@ export function ScheduleGrid() {
   );
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState('');
+  const [piktogram, setPiktogram] = useState(false);
 
   const targetWeekStart = format(
     addWeeks(startOfWeek(new Date(), { weekStartsOn: 1 }), weekOffset),
@@ -223,7 +225,19 @@ export function ScheduleGrid() {
             {format(ws, "'Uke' w · MMMM yyyy", { locale: nb })}
           </p>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => setPiktogram(p => !p)}
+            className={`w-8 h-8 flex items-center justify-center rounded-full transition-all active:scale-95 ${
+              piktogram
+                ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25'
+                : 'bg-white ring-1 ring-gray-100 text-gray-500'
+            }`}
+            aria-label="Bytt til bildeplan"
+            title="Bildeplan"
+          >
+            {piktogram ? <List size={15} /> : <LayoutGrid size={15} />}
+          </button>
           <button
             onClick={() => setWeekOffset((o) => o - 1)}
             className="w-8 h-8 flex items-center justify-center rounded-full bg-white ring-1 ring-gray-100 text-gray-500 active:scale-95 transition-all"
@@ -313,8 +327,13 @@ export function ScheduleGrid() {
         )}
       </div>
 
+      {/* Piktogram view */}
+      {piktogram && (
+        <PiktogramPlan days={days} childName={childName ?? ''} weekStart={ws} />
+      )}
+
       {/* Day tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-3 px-4 pt-3 scrollbar-hide">
+      {!piktogram && <div className="flex gap-2 overflow-x-auto pb-3 px-4 pt-3 scrollbar-hide">
         {loading
           ? [...Array(5)].map((_, i) => (
               <div key={i} className="flex-shrink-0 rounded-2xl px-4 py-2.5 min-w-[60px] bg-gray-100 animate-pulse h-14" />
@@ -344,10 +363,10 @@ export function ScheduleGrid() {
                 </button>
               );
             })}
-      </div>
+      </div>}
 
       {/* Main activities + meals */}
-      <div className="px-4 pt-2 flex flex-col gap-2.5">
+      {!piktogram && <div className="px-4 pt-2 flex flex-col gap-2.5">
         {loading ? (
           [...Array(3)].map((_, i) => (
             <div key={i} className="h-20 rounded-3xl bg-gray-100 animate-pulse" />
@@ -373,10 +392,10 @@ export function ScheduleGrid() {
             )
           )
         )}
-      </div>
+      </div>}
 
       {/* Fritid — hidden on weekends (merged above) */}
-      {!loading && !isWeekend && (
+      {!piktogram && !loading && !isWeekend && (
         <div className="mt-6 mb-2">
           <div className="relative mx-4 mb-4">
             <div className="absolute inset-0 flex items-center">

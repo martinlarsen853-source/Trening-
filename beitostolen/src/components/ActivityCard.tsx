@@ -103,19 +103,19 @@ export function ActivityCard({ activity, absences, childName, onClick }: Props) 
           }`}>
             {activity.name}
           </p>
-          {(activity.group_name === 'blå' || activity.group_name === 'alle') && (
+          {(activity.group_name === 'blå' || activity.group_name === 'blå+cecilie' || activity.group_name === 'alle') && (
             <div className="flex items-center gap-1.5 mt-1">
               <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
               <span className="text-xs font-semibold text-blue-700">Jakob · Lukas · Lars · Johannes</span>
             </div>
           )}
-          {(activity.group_name === 'gul' || activity.group_name === 'alle') && (
+          {(activity.group_name === 'gul' || activity.group_name === 'gul+cecilie' || activity.group_name === 'alle') && (
             <div className="flex items-center gap-1.5 mt-1">
               <span className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
               <span className="text-xs font-semibold text-amber-700">Sigurd · Alice · Evelina · Marianna · Mia</span>
             </div>
           )}
-          {activity.group_name === 'alle' && (
+          {(activity.group_name === 'blå+cecilie' || activity.group_name === 'gul+cecilie' || activity.group_name === 'alle') && (
             <div className="flex items-center gap-1.5 mt-1">
               <span className="w-2 h-2 rounded-full bg-gray-400 flex-shrink-0" />
               <span className="text-xs font-semibold text-gray-600">Cecilie</span>

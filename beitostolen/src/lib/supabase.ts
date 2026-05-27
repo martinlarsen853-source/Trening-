@@ -102,6 +102,7 @@ export type Companion = {
   name: string;
   access_password: string | null;
   is_primary: boolean;
+  is_active: boolean;
   invited_by: string | null;
   created_at: string;
 };

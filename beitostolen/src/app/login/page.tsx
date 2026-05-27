@@ -29,67 +29,78 @@ export default function LoginPage() {
     setLoading(true);
     const clean = code.trim().toUpperCase();
 
-    // 1. Check children table
-    const { data: child } = await supabase
-      .from('children')
-      .select('id, name, group_id')
-      .eq('access_password', clean)
-      .maybeSingle();
+    try {
+      // 1. Check children table
+      const { data: child, error: childErr } = await supabase
+        .from('children')
+        .select('id, name, group_id')
+        .eq('access_password', clean)
+        .maybeSingle();
 
-    if (child) {
-      const c = child as { id: string; name: string; group_id: string };
-      const { data: grp } = await supabase
-        .from('groups').select('label').eq('id', c.group_id).single();
-      const label = (grp as { label: string } | null)?.label ?? '';
-      localStorage.setItem('isLoggedIn', 'true');
-      localStorage.setItem('childId', c.id);
-      localStorage.setItem('childName', c.name);
-      localStorage.setItem('groupId', c.group_id);
-      localStorage.setItem('groupName', `Gruppe ${label}`);
-      localStorage.removeItem('lederMode');
-      localStorage.removeItem('staffRole');
-      localStorage.removeItem('companionId');
-      setLoading(false);
-      router.replace('/');
-      return;
-    }
+      if (childErr) throw childErr;
 
-    // 2. Check companions table
-    const { data: companion } = await supabase
-      .from('companions')
-      .select('id, name, child_id')
-      .eq('access_password', clean)
-      .maybeSingle();
-
-    if (companion) {
-      const cm = companion as { id: string; name: string; child_id: string };
-      const { data: childRow } = await supabase
-        .from('children').select('name, group_id').eq('id', cm.child_id).single();
-      const ch = childRow as { name: string; group_id: string } | null;
-      const { data: grp } = await supabase
-        .from('groups').select('label').eq('id', ch?.group_id ?? '').single();
-      const label = (grp as { label: string } | null)?.label ?? '';
-
-      if (!cm.name) {
-        // First login — ask for name
-        setPendingCompanion({
-          companionId: cm.id,
-          childId: cm.child_id,
-          childName: ch?.name ?? '',
-          groupId: ch?.group_id ?? '',
-          groupLabel: label,
-        });
+      if (child) {
+        const c = child as { id: string; name: string; group_id: string };
+        const { data: grp, error: grpErr } = await supabase
+          .from('groups').select('label').eq('id', c.group_id).single();
+        if (grpErr) throw grpErr;
+        const label = (grp as { label: string } | null)?.label ?? '';
+        localStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('childId', c.id);
+        localStorage.setItem('childName', c.name);
+        localStorage.setItem('groupId', c.group_id);
+        localStorage.setItem('groupName', `Gruppe ${label}`);
+        localStorage.removeItem('lederMode');
+        localStorage.removeItem('staffRole');
+        localStorage.removeItem('companionId');
         setLoading(false);
-        setStep('companion_name');
+        router.replace('/');
         return;
       }
 
-      finishCompanionLogin(cm.id, cm.name, cm.child_id, ch?.name ?? '', ch?.group_id ?? '', label);
-      return;
-    }
+      // 2. Check companions table (active only)
+      const { data: companion, error: compErr } = await supabase
+        .from('companions')
+        .select('id, name, child_id')
+        .eq('access_password', clean)
+        .eq('is_active', true)
+        .maybeSingle();
 
-    setLoading(false);
-    setError('Ugyldig kode — sjekk at du har tastet riktig.');
+      if (compErr) throw compErr;
+
+      if (companion) {
+        const cm = companion as { id: string; name: string; child_id: string };
+        const { data: childRow, error: crErr } = await supabase
+          .from('children').select('name, group_id').eq('id', cm.child_id).single();
+        if (crErr) throw crErr;
+        const ch = childRow as { name: string; group_id: string } | null;
+        const { data: grp } = await supabase
+          .from('groups').select('label').eq('id', ch?.group_id ?? '').single();
+        const label = (grp as { label: string } | null)?.label ?? '';
+
+        if (!cm.name) {
+          setPendingCompanion({
+            companionId: cm.id,
+            childId: cm.child_id,
+            childName: ch?.name ?? '',
+            groupId: ch?.group_id ?? '',
+            groupLabel: label,
+          });
+          setLoading(false);
+          setStep('companion_name');
+          return;
+        }
+
+        finishCompanionLogin(cm.id, cm.name, cm.child_id, ch?.name ?? '', ch?.group_id ?? '', label);
+        return;
+      }
+
+      setLoading(false);
+      setError('Ugyldig kode — sjekk at du har tastet riktig.');
+    } catch {
+      setLoading(false);
+      setError('Kunne ikke nå senteret. Sjekk nettilkoblingen og prøv igjen.');
+    }
   }
 
   /* ── Set companion name on first login ── */
@@ -97,10 +108,17 @@ export default function LoginPage() {
     e.preventDefault();
     if (!pendingCompanion || !companionName.trim()) return;
     setLoading(true);
-    await supabase.rpc('set_companion_name', {
-      p_companion_id: pendingCompanion.companionId,
-      p_name: companionName.trim(),
-    });
+    try {
+      const { error: rpcErr } = await supabase.rpc('set_companion_name', {
+        p_companion_id: pendingCompanion.companionId,
+        p_name: companionName.trim(),
+      });
+      if (rpcErr) throw rpcErr;
+    } catch {
+      setLoading(false);
+      setError('Kunne ikke lagre navn. Sjekk nettilkoblingen og prøv igjen.');
+      return;
+    }
     finishCompanionLogin(
       pendingCompanion.companionId,
       companionName.trim(),
@@ -190,14 +208,19 @@ export default function LoginPage() {
           <div className="flex flex-col gap-4">
             <form onSubmit={handleCodeLogin}>
               <div className="bg-white rounded-3xl p-6 shadow-xl">
-                <p className="text-xl font-black text-gray-900 mb-1">Skriv inn din kode</p>
-                <p className="text-sm text-gray-500 mb-4">Du finner koden på oppslaget fra lederen</p>
+                <label htmlFor="access-code">
+                  <p className="text-xl font-black text-gray-900 mb-1">Skriv inn din kode</p>
+                  <p className="text-sm text-gray-500 mb-4">Du finner koden på oppslaget fra lederen</p>
+                </label>
                 <input
+                  id="access-code"
                   type="text"
+                  inputMode="text"
                   value={code}
                   onChange={e => setCode(e.target.value)}
                   placeholder="F.eks. GWQPA9"
                   autoCapitalize="characters"
+                  autoComplete="off"
                   autoFocus
                   className={inputCls + ' font-mono tracking-widest text-2xl text-center'}
                 />

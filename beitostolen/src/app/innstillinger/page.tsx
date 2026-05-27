@@ -155,6 +155,13 @@ export default function InnstillingerPage() {
 
           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">Lederverktøy</p>
           <div className="bg-white rounded-3xl border border-gray-100 shadow-sm divide-y divide-gray-100 overflow-hidden">
+            <Link href="/admin/barn" className="flex items-center justify-between px-4 py-4 active:bg-gray-100 transition-colors">
+              <div>
+                <p className="font-semibold text-gray-900">Barn og koder</p>
+                <p className="text-sm text-gray-500 mt-0.5">Legg til barn, se og generer tilgangskoder</p>
+              </div>
+              <span className="text-gray-300 text-lg">›</span>
+            </Link>
             <Link href="/ansatte" className="flex items-center justify-between px-4 py-4 active:bg-gray-100 transition-colors">
               <div>
                 <p className="font-semibold text-gray-900">Administrer ansatte</p>

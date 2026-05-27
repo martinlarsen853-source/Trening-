@@ -38,6 +38,7 @@ export function ScheduleGrid() {
     return day === 0 ? 7 : day;
   });
   const [weekOffset, setWeekOffset] = useState(0);
+  const [autoJumped, setAutoJumped] = useState(false);
   const [selected, setSelected] = useState<TimeplanActivity | null>(null);
   const [isStaff] = useState(() =>
     typeof window !== 'undefined' && localStorage.getItem('lederMode') === 'true'
@@ -130,9 +131,25 @@ export function ScheduleGrid() {
           setLoading(false);
         }
         try { localStorage.setItem(cacheKey, JSON.stringify(fetched)); } catch {}
+
+        // Auto-hopp: hvis ingen data denne uken, finn nærmeste uke med aktiviteter
+        if (!autoJumped && weekOffset === 0 && fetched.length === 0) {
+          fetch('/api/timeplan/nearest')
+            .then(r => r.json())
+            .then(d => {
+              if (d.weekStart) {
+                const thisMonday = addWeeks(startOfWeek(new Date(), { weekStartsOn: 1 }), 0);
+                const target = new Date(d.weekStart + 'T12:00:00');
+                const diff = Math.round((target.getTime() - thisMonday.getTime()) / (7 * 24 * 60 * 60 * 1000));
+                setWeekOffset(diff);
+                setAutoJumped(true);
+              }
+            })
+            .catch(() => {});
+        }
       })
       .catch(() => setLoading(false));
-  }, [targetWeekStart, childName]);
+  }, [targetWeekStart, childName, weekOffset, autoJumped]);
 
   const toggleAbsence = useCallback(async (activityId: string) => {
     const cn = childName ?? '';

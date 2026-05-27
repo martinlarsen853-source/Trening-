@@ -123,6 +123,15 @@ export function ScheduleGrid() {
     ...fritidActivities.map((a) => a.day_of_week),
   ])].sort((a, b) => a - b);
 
+  // Auto-advance past weeks with no activities (e.g. between camp sessions)
+  useEffect(() => {
+    if (loading) return;
+    if (allDays.length > 0) return;   // This week has content — stop
+    if (weekOffset < 0) return;       // Don't auto-advance when browsing past
+    if (weekOffset >= 10) return;     // Safety limit
+    setWeekOffset((o) => o + 1);
+  }, [loading, allDays.length, weekOffset]);
+
   const dayActivities = activities
     .filter((a) => a.day_of_week === selectedDay)
     .filter((a) => !a.target_child || a.target_child.toLowerCase() === (childName ?? '').toLowerCase())
@@ -155,8 +164,8 @@ export function ScheduleGrid() {
     return ta.localeCompare(tb);
   });
 
-  // While auth session is loading, show nothing (AuthGuard handles redirect)
-  if (!childName) return null;
+  // Show name setup on first visit (no auth on main — localStorage only)
+  if (!childName) return <NameSetup storageKey="childName" label="Hva heter barnet ditt?" placeholder="f.eks. Jakob" onSet={setChildName} />;
 
   return (
     <div>

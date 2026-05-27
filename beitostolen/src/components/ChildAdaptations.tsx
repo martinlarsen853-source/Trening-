@@ -36,9 +36,14 @@ function EditModal({ childName, profile, onClose, onSaved }: {
   }
 
   async function save() {
+    if (!profile) return;
     setSaving(true);
-    const payload = { child_name: childName, adaptations: [...selected], note: note.trim() || null, updated_at: new Date().toISOString() };
-    const { data } = await supabase.from('child_profiles').upsert(payload, { onConflict: 'child_name' }).select().single();
+    const { data } = await supabase
+      .from('children')
+      .update({ adaptations: [...selected], note: note.trim() || null, updated_at: new Date().toISOString() })
+      .eq('id', profile.id)
+      .select()
+      .single();
     setSaving(false);
     if (data) onSaved(data as ChildProfile);
     onClose();
@@ -92,7 +97,7 @@ export function ChildAdaptations({ childName, isLeder }: { childName: string; is
   const [editing, setEditing] = useState(false);
 
   useEffect(() => {
-    supabase.from('child_profiles').select('*').eq('child_name', childName).maybeSingle()
+    supabase.from('children').select('*').eq('name', childName).maybeSingle()
       .then(({ data }) => setProfile(data as ChildProfile | null));
   }, [childName]);
 

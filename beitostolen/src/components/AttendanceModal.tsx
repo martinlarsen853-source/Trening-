@@ -24,11 +24,11 @@ export function AttendanceModal({
   useEffect(() => {
     async function load() {
       const [profilesRes, attendanceRes] = await Promise.all([
-        supabase.from('child_profiles').select('child_name').order('child_name'),
+        supabase.from('children').select('name').order('name'),
         supabase.from('attendance').select('*').eq('activity_id', activity.id).eq('date', date),
       ]);
 
-      const names: string[] = (profilesRes.data ?? []).map((r: { child_name: string }) => r.child_name);
+      const names: string[] = (profilesRes.data ?? []).map((r: { name: string }) => r.name);
       const attMap: Record<string, boolean> = {};
       for (const a of (attendanceRes.data ?? []) as Attendance[]) {
         attMap[a.child_name] = a.present;

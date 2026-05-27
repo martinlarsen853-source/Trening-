@@ -240,7 +240,7 @@ function ActivityDetailModal({ activity, liveStatus, staffMember, children, isLe
                 <div className="flex flex-wrap gap-2">
                   {children.map(c => (
                     <span key={c.id} className="text-sm font-semibold bg-blue-50 text-blue-700 px-3 py-1 rounded-full">
-                      {c.child_name}
+                      {c.name}
                     </span>
                   ))}
                 </div>
@@ -569,10 +569,10 @@ export function StatusDashboard() {
     });
   }, [isStaff]);
 
-  // Fetch child profiles — only needed for leder attendance view
+  // Fetch children — only needed for leder attendance view
   useEffect(() => {
     if (!isStaff) return;
-    supabase.from('child_profiles').select('*').then(({ data }) => {
+    supabase.from('children').select('*').then(({ data }) => {
       if (data) setChildProfiles(data as ChildProfile[]);
     });
   }, [isStaff]);

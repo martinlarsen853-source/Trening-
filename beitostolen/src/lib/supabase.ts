@@ -42,10 +42,12 @@ export type Activity = {
 
 export type ChildProfile = {
   id: string;
-  child_name: string;
+  name: string;
+  group_id: string;
   adaptations: string[];
   note: string | null;
   updated_at: string;
+  access_password: string | null;
 };
 
 export type StaffMember = {
@@ -69,6 +71,7 @@ export type ActivityStatus = {
 export type DailyCheckin = {
   id: string;
   child_name: string;
+  child_id: string | null;
   date: string;
   form_level: 'grønn' | 'gul' | 'rød';
   registered_at: string;
@@ -79,6 +82,7 @@ export type Attendance = {
   activity_id: string;
   date: string;
   child_name: string;
+  child_id: string | null;
   present: boolean;
   marked_at: string;
   marked_by: string | null;
@@ -88,6 +92,7 @@ export type Absence = {
   id: string;
   activity_id: string;
   child_name: string;
+  child_id: string | null;
   registered_at: string;
 };
 

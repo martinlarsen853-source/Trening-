@@ -77,6 +77,39 @@ export default function LoginPage() {
     router.replace('/');
   }
 
+  /* ── Demo quick-access ── */
+  async function quickLoginStudent() {
+    setLoading(true);
+    const { data: group } = await supabase
+      .from('groups').select('id, label').eq('status', 'aktiv').order('label').limit(1).single();
+    if (group) {
+      const { data: child } = await supabase
+        .from('children').select('id, name').eq('group_id', (group as { id: string; label: string }).id).order('name').limit(1).single();
+      if (child) {
+        const g = group as { id: string; label: string };
+        const c = child as { id: string; name: string };
+        localStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('childName', c.name);
+        localStorage.setItem('childId', c.id);
+        localStorage.setItem('groupId', g.id);
+        localStorage.setItem('groupName', `Gruppe ${g.label}`);
+        localStorage.removeItem('lederMode');
+        router.replace('/');
+        return;
+      }
+    }
+    setLoading(false);
+    setError('Ingen barn funnet i databasen.');
+  }
+
+  function quickLoginAdmin() {
+    localStorage.setItem('isLoggedIn', 'true');
+    localStorage.setItem('lederMode', 'true');
+    localStorage.setItem('staffName', 'Admin');
+    localStorage.removeItem('childId');
+    router.replace('/');
+  }
+
   const inputCls = 'w-full rounded-2xl border-2 border-gray-200 bg-white px-4 py-3.5 text-base font-semibold text-gray-900 outline-none focus:border-blue-500 placeholder:text-gray-300 transition-colors';
 
   return (
@@ -121,6 +154,27 @@ export default function LoginPage() {
               </div>
               <ChevronRight size={22} className="text-blue-300 flex-shrink-0" />
             </button>
+
+            {/* ── Demo quick-access ── */}
+            <div className="mt-2">
+              <p className="text-[10px] font-bold text-blue-300/60 uppercase tracking-widest text-center mb-2">
+                Hurtiginnlogging (demo)
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={quickLoginStudent}
+                  className="flex-1 py-3.5 rounded-2xl bg-white/15 border border-white/20 text-white font-bold text-sm active:scale-95 transition-all"
+                >
+                  👤 Student
+                </button>
+                <button
+                  onClick={quickLoginAdmin}
+                  className="flex-1 py-3.5 rounded-2xl bg-white/15 border border-white/20 text-white font-bold text-sm active:scale-95 transition-all"
+                >
+                  🔑 Admin
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

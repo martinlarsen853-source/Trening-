@@ -67,7 +67,7 @@ export function ChatClient() {
     return () => { supabase.removeChannel(ch); };
   }, [tab]);
 
-  // Realtime inbox
+  // Realtime inbox messages (when thread exists)
   useEffect(() => {
     if (!threadId || tab !== 'med_leder') return;
     const ch = supabase.channel(`inbox-ledsager-${threadId}`)
@@ -76,6 +76,16 @@ export function ChatClient() {
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [threadId, tab, childId]);
+
+  // Watch for a new thread being created (leder sends first message)
+  useEffect(() => {
+    if (threadId || tab !== 'med_leder' || !childId) return;
+    const ch = supabase.channel(`inbox-thread-watch-${childId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'inbox_threads' },
+        () => loadThread())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [threadId, tab, childId, loadThread]);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [groupMsgs, inboxMsgs]);
 

@@ -9,7 +9,7 @@ import { ActivityEditModal } from './ActivityEditModal';
 import { StaffAvatar } from './StaffAvatar';
 import { format, addDays, addWeeks, startOfWeek } from 'date-fns';
 import { nb } from 'date-fns/locale';
-import { Utensils, MessageCircle, Pencil, X, LayoutGrid, List } from 'lucide-react';
+import { Utensils, MessageCircle, X, LayoutGrid, List } from 'lucide-react';
 import { PiktogramPlan } from './PiktogramPlan';
 
 const DAYS = ['Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør', 'Søn'];
@@ -46,11 +46,6 @@ export function ScheduleGrid() {
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [editActivity, setEditActivity] = useState<TimeplanActivity | null>(null);
   const [expandedStaff, setExpandedStaff] = useState<{ id: string; name: string; photo_url: string | null } | null>(null);
-  const [viewMode, setViewMode] = useState<'leder' | 'ledsager'>(() =>
-    typeof window !== 'undefined' && localStorage.getItem('lederMode') === 'true' ? 'leder' : 'ledsager'
-  );
-  const [editingName, setEditingName] = useState(false);
-  const [nameInput, setNameInput] = useState('');
   const [piktogram, setPiktogram] = useState(false);
 
   const targetWeekStart = format(
@@ -230,7 +225,7 @@ export function ScheduleGrid() {
     return ta.localeCompare(tb);
   });
 
-  if (!childName) return (
+  if (!childName && !isStaff) return (
     <div className="px-6 pt-20 flex flex-col items-center text-center gap-3">
       <p className="text-5xl">👤</p>
       <p className="text-lg font-bold text-gray-800">Hvem er dette for?</p>
@@ -306,69 +301,14 @@ export function ScheduleGrid() {
         </div>
       </div>
 
-      {/* Leder/Ledsager toggle */}
-      {isStaff && (
-        <div className="px-4 pt-2 pb-1 flex items-center justify-between">
-          <div>
-            <p className="text-sm font-semibold text-gray-700">
-              {viewMode === 'leder' ? 'Ledermodus' : 'Ledsagermodus'}
-            </p>
-            <p className="text-xs text-gray-400">
-              {viewMode === 'leder' ? 'Dagsform og alle data synlig' : 'Standard foreldrevisning'}
-            </p>
-          </div>
-          <button
-            onClick={() => setViewMode((m) => m === 'leder' ? 'ledsager' : 'leder')}
-            className={`relative flex-shrink-0 w-14 h-7 rounded-full transition-colors duration-200 ${
-              viewMode === 'leder' ? 'bg-green-500' : 'bg-gray-300'
-            }`}
-            aria-label="Bytt visningsmodus"
-          >
-            <span className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-200 ${
-              viewMode === 'leder' ? 'translate-x-7' : 'translate-x-0.5'
-            }`} />
-          </button>
-        </div>
-      )}
-
-      {/* Child name */}
-      <div className="px-4 pt-2 pb-0">
-        {isStaff && viewMode === 'leder' ? (
-          editingName ? (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-500">Barn:</span>
-              <input
-                value={nameInput}
-                onChange={(e) => setNameInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') { setChildName(nameInput); setEditingName(false); } }}
-                className="text-sm font-medium text-gray-700 border-b border-blue-400 outline-none bg-transparent w-32"
-                autoFocus
-              />
-              <button onClick={() => { setChildName(nameInput); setEditingName(false); }}
-                className="text-xs text-blue-600 font-semibold">OK</button>
-              <button onClick={() => setEditingName(false)}
-                className="text-xs text-gray-400">Avbryt</button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-1.5">
-              <p className="text-sm text-gray-500">
-                Barn: <span className="font-medium text-gray-700">{childName}</span>
-              </p>
-              <button
-                onClick={() => { setNameInput(childName ?? ''); setEditingName(true); }}
-                className="text-gray-400 hover:text-blue-500 transition-colors"
-                aria-label="Bytt barnenavn"
-              >
-                <Pencil size={13} />
-              </button>
-            </div>
-          )
-        ) : (
+      {/* Child name — shown for ledsager only */}
+      {!isStaff && (
+        <div className="px-4 pt-2 pb-0">
           <p className="text-sm text-gray-500">
             Barn: <span className="font-medium text-gray-700">{childName}</span>
           </p>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Piktogram view */}
       {piktogram && (

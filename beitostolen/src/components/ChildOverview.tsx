@@ -51,14 +51,25 @@ export function ChildOverview({ isAdmin }: { isAdmin: boolean }) {
     const today = now.toISOString().slice(0, 10);
 
     try {
+      // If no groupId (staff logged in without a group), fetch all children
+      let childQuery = supabase.from('children').select('id, name, access_password').order('name');
+      if (groupId) childQuery = childQuery.eq('group_id', groupId);
+
+      // For activity: use first active group if no groupId
+      let actGroupId = groupId;
+      if (!actGroupId) {
+        const { data: grp } = await supabase.from('groups').select('id').eq('status', 'aktiv').order('label').limit(1).single();
+        actGroupId = (grp as { id: string } | null)?.id ?? '';
+      }
+
       const [childRes, checkinRes, absenceRes, actRes] = await Promise.all([
-        supabase.from('children').select('id, name, access_password').eq('group_id', groupId).order('name'),
+        childQuery,
         supabase.from('daily_checkins').select('child_name, form_level').eq('date', today),
         supabase.from('absences').select('child_name')
           .gte('registered_at', today + 'T00:00:00Z')
           .lte('registered_at', today + 'T23:59:59Z'),
         supabase.from('activities').select('id, name, time_start, time_end, location, target_child')
-          .eq('group_id', groupId).eq('week_start', weekStart).eq('day_of_week', dayOfWeek)
+          .eq('group_id', actGroupId).eq('week_start', weekStart).eq('day_of_week', dayOfWeek)
           .eq('is_fritid', false).order('time_start'),
       ]);
 

@@ -149,32 +149,11 @@ export default function LoginPage() {
               className="w-full bg-white/10 border border-white/20 rounded-3xl px-6 py-5 flex items-center justify-between active:scale-[0.98] transition-transform"
             >
               <div className="text-left">
-                <p className="text-lg font-black text-white">Ansatt / leder</p>
+                <p className="text-lg font-black text-white">Ansatt</p>
                 <p className="text-sm text-blue-200 mt-0.5">Logg inn med stab-kode</p>
               </div>
               <ChevronRight size={22} className="text-blue-300 flex-shrink-0" />
             </button>
-
-            {/* ── Demo quick-access ── */}
-            <div className="mt-2">
-              <p className="text-[10px] font-bold text-blue-300/60 uppercase tracking-widest text-center mb-2">
-                Hurtiginnlogging (demo)
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={quickLoginStudent}
-                  className="flex-1 py-3.5 rounded-2xl bg-white/15 border border-white/20 text-white font-bold text-sm active:scale-95 transition-all"
-                >
-                  👤 Student
-                </button>
-                <button
-                  onClick={quickLoginAdmin}
-                  className="flex-1 py-3.5 rounded-2xl bg-white/15 border border-white/20 text-white font-bold text-sm active:scale-95 transition-all"
-                >
-                  🔑 Admin
-                </button>
-              </div>
-            </div>
           </div>
         )}
 
@@ -243,39 +222,73 @@ export default function LoginPage() {
 
         {/* ── Staff login ── */}
         {step === 'staff' && (
-          <form onSubmit={handleStaffLogin} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3">
             <button type="button" onClick={() => { setStep('role'); setError(''); }} className="flex items-center gap-1 text-blue-200 text-sm mb-1">
               <ArrowLeft size={15} />Tilbake
             </button>
-            <div className="bg-white rounded-3xl p-6 shadow-xl">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Ansatt</p>
-              <p className="text-xl font-black text-gray-900 mb-4">Logg inn som leder</p>
-              <div className="flex flex-col gap-3">
-                <input
-                  type="text"
-                  value={staffName}
-                  onChange={e => setStaffName(e.target.value)}
-                  placeholder="Ditt navn"
-                  className={inputCls}
-                />
-                <input
-                  type="password"
-                  value={staffCode}
-                  onChange={e => setStaffCode(e.target.value)}
-                  placeholder="Stab-kode"
-                  className={inputCls}
-                />
+
+            {/* Quick-access buttons */}
+            <button
+              onClick={quickLoginAdmin}
+              className="w-full bg-white rounded-3xl px-6 py-5 flex items-center justify-between shadow-xl active:scale-[0.98] transition-transform"
+            >
+              <div className="text-left">
+                <p className="text-lg font-black text-gray-900">🔑 Admin</p>
+                <p className="text-sm text-gray-500 mt-0.5">Full leder-tilgang</p>
               </div>
-              {error && <p className="text-red-500 text-sm mt-2 font-medium">{error}</p>}
-              <button
-                type="submit"
-                disabled={!staffName.trim() || !staffCode.trim()}
-                className="w-full mt-4 py-4 rounded-2xl bg-gray-900 text-white font-black text-base disabled:opacity-40 active:scale-95 transition-all"
-              >
-                Logg inn som leder
-              </button>
-            </div>
-          </form>
+              <ChevronRight size={22} className="text-blue-500 flex-shrink-0" />
+            </button>
+
+            <button
+              onClick={quickLoginStudent}
+              disabled={loading}
+              className="w-full bg-white rounded-3xl px-6 py-5 flex items-center justify-between shadow-xl active:scale-[0.98] transition-transform disabled:opacity-60"
+            >
+              <div className="text-left">
+                <p className="text-lg font-black text-gray-900">
+                  {loading ? <Loader2 size={18} className="animate-spin inline" /> : '👤'} Student
+                </p>
+                <p className="text-sm text-gray-500 mt-0.5">Logg inn som barn / ledsager</p>
+              </div>
+              <ChevronRight size={22} className="text-blue-500 flex-shrink-0" />
+            </button>
+
+            {error && <p className="text-red-300 text-sm text-center font-medium">{error}</p>}
+
+            {/* Code form — collapsed by default */}
+            <details className="group">
+              <summary className="text-center text-blue-200/70 text-xs font-semibold cursor-pointer select-none py-1 list-none">
+                Logg inn med stab-kode ↓
+              </summary>
+              <form onSubmit={handleStaffLogin} className="mt-3">
+                <div className="bg-white rounded-3xl p-6 shadow-xl">
+                  <div className="flex flex-col gap-3">
+                    <input
+                      type="text"
+                      value={staffName}
+                      onChange={e => setStaffName(e.target.value)}
+                      placeholder="Ditt navn"
+                      className={inputCls}
+                    />
+                    <input
+                      type="password"
+                      value={staffCode}
+                      onChange={e => setStaffCode(e.target.value)}
+                      placeholder="Stab-kode"
+                      className={inputCls}
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={!staffName.trim() || !staffCode.trim()}
+                    className="w-full mt-4 py-4 rounded-2xl bg-gray-900 text-white font-black text-base disabled:opacity-40 active:scale-95 transition-all"
+                  >
+                    Logg inn
+                  </button>
+                </div>
+              </form>
+            </details>
+          </div>
         )}
       </div>
 

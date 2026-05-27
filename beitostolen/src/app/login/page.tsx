@@ -5,108 +5,163 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, ChevronRight, Loader2 } from 'lucide-react';
 
-type Step = 'role' | 'group' | 'child' | 'staff';
+type Step = 'code' | 'companion_name' | 'staff';
 
 const STAFF_CODE = 'BHS-STAB';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [step, setStep] = useState<Step>('role');
-  const [groupCode, setGroupCode] = useState('');
-  const [childCode, setChildCode] = useState('');
-  const [staffCode, setStaffCode] = useState('');
+  const [step, setStep] = useState<Step>('code');
+  const [code, setCode] = useState('');
+  const [companionName, setCompanionName] = useState('');
+  const [pendingCompanion, setPendingCompanion] = useState<{
+    companionId: string; childId: string; childName: string; groupId: string; groupLabel: string;
+  } | null>(null);
   const [staffName, setStaffName] = useState('');
-  const [groupData, setGroupData] = useState<{ id: string; label: string } | null>(null);
+  const [staffCode, setStaffCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  /* ── Step 1: validate group code ── */
-  async function handleGroupCode(e: FormEvent) {
+  /* ── Single-code login (child or companion) ── */
+  async function handleCodeLogin(e: FormEvent) {
     e.preventDefault();
     setError('');
     setLoading(true);
-    const { data } = await supabase
-      .from('groups')
-      .select('id, label')
-      .eq('access_code', groupCode.trim().toUpperCase())
-      .eq('status', 'aktiv')
+    const clean = code.trim().toUpperCase();
+
+    // 1. Check children table
+    const { data: child } = await supabase
+      .from('children')
+      .select('id, name, group_id')
+      .eq('access_password', clean)
       .maybeSingle();
+
+    if (child) {
+      const c = child as { id: string; name: string; group_id: string };
+      const { data: grp } = await supabase
+        .from('groups').select('label').eq('id', c.group_id).single();
+      const label = (grp as { label: string } | null)?.label ?? '';
+      localStorage.setItem('isLoggedIn', 'true');
+      localStorage.setItem('childId', c.id);
+      localStorage.setItem('childName', c.name);
+      localStorage.setItem('groupId', c.group_id);
+      localStorage.setItem('groupName', `Gruppe ${label}`);
+      localStorage.removeItem('lederMode');
+      localStorage.removeItem('staffRole');
+      localStorage.removeItem('companionId');
+      setLoading(false);
+      router.replace('/');
+      return;
+    }
+
+    // 2. Check companions table
+    const { data: companion } = await supabase
+      .from('companions')
+      .select('id, name, child_id')
+      .eq('access_password', clean)
+      .maybeSingle();
+
+    if (companion) {
+      const cm = companion as { id: string; name: string; child_id: string };
+      const { data: childRow } = await supabase
+        .from('children').select('name, group_id').eq('id', cm.child_id).single();
+      const ch = childRow as { name: string; group_id: string } | null;
+      const { data: grp } = await supabase
+        .from('groups').select('label').eq('id', ch?.group_id ?? '').single();
+      const label = (grp as { label: string } | null)?.label ?? '';
+
+      if (!cm.name) {
+        // First login — ask for name
+        setPendingCompanion({
+          companionId: cm.id,
+          childId: cm.child_id,
+          childName: ch?.name ?? '',
+          groupId: ch?.group_id ?? '',
+          groupLabel: label,
+        });
+        setLoading(false);
+        setStep('companion_name');
+        return;
+      }
+
+      finishCompanionLogin(cm.id, cm.name, cm.child_id, ch?.name ?? '', ch?.group_id ?? '', label);
+      return;
+    }
+
     setLoading(false);
-    if (!data) { setError('Ugyldig gruppekode — sjekk at du har tastet riktig.'); return; }
-    setGroupData(data as { id: string; label: string });
-    setStep('child');
+    setError('Ugyldig kode — sjekk at du har tastet riktig.');
   }
 
-  /* ── Step 2a: validate child code ── */
-  async function handleChildLogin(e: FormEvent) {
+  /* ── Set companion name on first login ── */
+  async function handleCompanionName(e: FormEvent) {
     e.preventDefault();
-    if (!groupData) return;
-    setError('');
+    if (!pendingCompanion || !companionName.trim()) return;
     setLoading(true);
-    const { data } = await supabase
-      .from('children')
-      .select('id, name')
-      .eq('group_id', groupData.id)
-      .eq('access_password', childCode.trim().toUpperCase())
-      .maybeSingle();
-    setLoading(false);
-    if (!data) { setError('Ugyldig kode — sjekk at du har tastet riktig.'); return; }
-    const child = data as { id: string; name: string };
+    await supabase.rpc('set_companion_name', {
+      p_companion_id: pendingCompanion.companionId,
+      p_name: companionName.trim(),
+    });
+    finishCompanionLogin(
+      pendingCompanion.companionId,
+      companionName.trim(),
+      pendingCompanion.childId,
+      pendingCompanion.childName,
+      pendingCompanion.groupId,
+      pendingCompanion.groupLabel,
+    );
+  }
+
+  function finishCompanionLogin(
+    companionId: string, name: string,
+    childId: string, childName: string,
+    groupId: string, groupLabel: string,
+  ) {
     localStorage.setItem('isLoggedIn', 'true');
-    localStorage.setItem('childName', child.name);
-    localStorage.setItem('childId', child.id);
-    localStorage.setItem('groupId', groupData.id);
-    localStorage.setItem('groupName', `Gruppe ${groupData.label}`);
+    localStorage.setItem('companionId', companionId);
+    localStorage.setItem('companionName', name);
+    localStorage.setItem('childId', childId);
+    localStorage.setItem('childName', childName);
+    localStorage.setItem('groupId', groupId);
+    localStorage.setItem('groupName', `Gruppe ${groupLabel}`);
     localStorage.removeItem('lederMode');
+    localStorage.removeItem('staffRole');
+    setLoading(false);
     router.replace('/');
   }
 
-  /* ── Step 2b: staff login ── */
+  /* ── Staff login with code ── */
   function handleStaffLogin(e: FormEvent) {
     e.preventDefault();
     setError('');
-    if (staffCode.trim().toUpperCase() !== STAFF_CODE) {
-      setError('Ugyldig stab-kode.');
-      return;
-    }
+    if (staffCode.trim().toUpperCase() !== STAFF_CODE) { setError('Ugyldig stab-kode.'); return; }
     if (!staffName.trim()) { setError('Skriv inn ditt navn.'); return; }
     localStorage.setItem('isLoggedIn', 'true');
     localStorage.setItem('lederMode', 'true');
+    localStorage.setItem('staffRole', 'admin');
     localStorage.setItem('staffName', staffName.trim());
     localStorage.removeItem('childId');
+    localStorage.removeItem('companionId');
     router.replace('/');
   }
 
   /* ── Demo quick-access ── */
-  async function quickLoginStudent() {
-    setLoading(true);
-    const { data: group } = await supabase
-      .from('groups').select('id, label').eq('status', 'aktiv').order('label').limit(1).single();
-    if (group) {
-      const { data: child } = await supabase
-        .from('children').select('id, name').eq('group_id', (group as { id: string; label: string }).id).order('name').limit(1).single();
-      if (child) {
-        const g = group as { id: string; label: string };
-        const c = child as { id: string; name: string };
-        localStorage.setItem('isLoggedIn', 'true');
-        localStorage.setItem('childName', c.name);
-        localStorage.setItem('childId', c.id);
-        localStorage.setItem('groupId', g.id);
-        localStorage.setItem('groupName', `Gruppe ${g.label}`);
-        localStorage.removeItem('lederMode');
-        router.replace('/');
-        return;
-      }
-    }
-    setLoading(false);
-    setError('Ingen barn funnet i databasen.');
-  }
-
   function quickLoginAdmin() {
     localStorage.setItem('isLoggedIn', 'true');
     localStorage.setItem('lederMode', 'true');
+    localStorage.setItem('staffRole', 'admin');
     localStorage.setItem('staffName', 'Admin');
     localStorage.removeItem('childId');
+    localStorage.removeItem('companionId');
+    router.replace('/');
+  }
+
+  function quickLoginStudent() {
+    localStorage.setItem('isLoggedIn', 'true');
+    localStorage.setItem('staffRole', 'student');
+    localStorage.setItem('staffName', 'Student');
+    localStorage.removeItem('lederMode');
+    localStorage.removeItem('childId');
+    localStorage.removeItem('companionId');
     router.replace('/');
   }
 
@@ -130,104 +185,84 @@ export default function LoginPage() {
 
       <div className="w-full max-w-sm">
 
-        {/* ── Role selection ── */}
-        {step === 'role' && (
-          <div className="flex flex-col gap-3">
-            <button
-              onClick={() => setStep('group')}
-              className="w-full bg-white rounded-3xl px-6 py-5 flex items-center justify-between shadow-xl active:scale-[0.98] transition-transform"
-            >
-              <div className="text-left">
-                <p className="text-lg font-black text-gray-900">Student</p>
-                <p className="text-sm text-gray-500 mt-0.5">Logg inn med din tilgangskode</p>
+        {/* ── Single code entry (ledsager / barn) ── */}
+        {step === 'code' && (
+          <div className="flex flex-col gap-4">
+            <form onSubmit={handleCodeLogin}>
+              <div className="bg-white rounded-3xl p-6 shadow-xl">
+                <p className="text-xl font-black text-gray-900 mb-1">Skriv inn din kode</p>
+                <p className="text-sm text-gray-500 mb-4">Du finner koden på oppslaget fra lederen</p>
+                <input
+                  type="text"
+                  value={code}
+                  onChange={e => setCode(e.target.value)}
+                  placeholder="F.eks. GWQPA9"
+                  autoCapitalize="characters"
+                  autoFocus
+                  className={inputCls + ' font-mono tracking-widest text-2xl text-center'}
+                />
+                {error && <p className="text-red-500 text-sm mt-2 font-medium text-center">{error}</p>}
+                <button
+                  type="submit"
+                  disabled={loading || !code.trim()}
+                  className="w-full mt-4 py-4 rounded-2xl bg-blue-600 text-white font-black text-base disabled:opacity-40 active:scale-95 transition-all flex items-center justify-center gap-2"
+                >
+                  {loading && <Loader2 size={18} className="animate-spin" />}
+                  {loading ? 'Sjekker…' : 'Logg inn'}
+                </button>
               </div>
-              <ChevronRight size={22} className="text-blue-500 flex-shrink-0" />
-            </button>
+            </form>
 
             <button
-              onClick={() => setStep('staff')}
-              className="w-full bg-white/10 border border-white/20 rounded-3xl px-6 py-5 flex items-center justify-between active:scale-[0.98] transition-transform"
+              onClick={() => { setStep('staff'); setError(''); }}
+              className="w-full bg-white/10 border border-white/20 rounded-3xl px-6 py-4 flex items-center justify-between active:scale-[0.98] transition-transform"
             >
-              <div className="text-left">
-                <p className="text-lg font-black text-white">Ansatt</p>
-                <p className="text-sm text-blue-200 mt-0.5">Logg inn med stab-kode</p>
-              </div>
-              <ChevronRight size={22} className="text-blue-300 flex-shrink-0" />
+              <p className="font-bold text-white">Ansatt</p>
+              <ChevronRight size={20} className="text-blue-300" />
             </button>
           </div>
         )}
 
-        {/* ── Group code entry ── */}
-        {step === 'group' && (
-          <form onSubmit={handleGroupCode} className="flex flex-col gap-4">
-            <button type="button" onClick={() => { setStep('role'); setError(''); }} className="flex items-center gap-1 text-blue-200 text-sm mb-1">
-              <ArrowLeft size={15} />Tilbake
-            </button>
+        {/* ── Companion name on first login ── */}
+        {step === 'companion_name' && pendingCompanion && (
+          <form onSubmit={handleCompanionName} className="flex flex-col gap-4">
             <div className="bg-white rounded-3xl p-6 shadow-xl">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Steg 1 av 2</p>
-              <p className="text-xl font-black text-gray-900 mb-4">Skriv inn gruppekode</p>
+              <p className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-1">Første innlogging</p>
+              <p className="text-xl font-black text-gray-900 mb-1">Hva heter du?</p>
+              <p className="text-sm text-gray-500 mb-4">
+                Navnet vises til leder og i aktivitetsoversikten.
+              </p>
               <input
                 type="text"
-                value={groupCode}
-                onChange={e => setGroupCode(e.target.value)}
-                placeholder="F.eks. BHS-2C-2026"
-                autoCapitalize="characters"
+                value={companionName}
+                onChange={e => setCompanionName(e.target.value)}
+                placeholder="Ditt fulle navn"
+                autoFocus
                 className={inputCls}
               />
-              {error && <p className="text-red-500 text-sm mt-2 font-medium">{error}</p>}
               <button
                 type="submit"
-                disabled={loading || !groupCode.trim()}
+                disabled={loading || !companionName.trim()}
                 className="w-full mt-4 py-4 rounded-2xl bg-blue-600 text-white font-black text-base disabled:opacity-40 active:scale-95 transition-all flex items-center justify-center gap-2"
               >
-                {loading ? <Loader2 size={18} className="animate-spin" /> : null}
-                {loading ? 'Sjekker…' : 'Neste →'}
+                {loading && <Loader2 size={18} className="animate-spin" />}
+                {loading ? 'Lagrer…' : 'Fortsett'}
               </button>
             </div>
           </form>
         )}
 
-        {/* ── Child code entry ── */}
-        {step === 'child' && groupData && (
-          <form onSubmit={handleChildLogin} className="flex flex-col gap-4">
-            <button type="button" onClick={() => { setStep('group'); setError(''); }} className="flex items-center gap-1 text-blue-200 text-sm mb-1">
-              <ArrowLeft size={15} />Tilbake
-            </button>
-            <div className="bg-white rounded-3xl p-6 shadow-xl">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Steg 2 av 2</p>
-              <p className="text-xl font-black text-gray-900 mb-1">Barnets kode</p>
-              <div className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 text-xs font-bold px-3 py-1 rounded-full mb-4">
-                ✓ Gruppe {groupData.label}
-              </div>
-              <input
-                type="text"
-                value={childCode}
-                onChange={e => setChildCode(e.target.value)}
-                placeholder="F.eks. GWQPA9"
-                autoCapitalize="characters"
-                className={inputCls + ' font-mono tracking-widest text-lg'}
-              />
-              {error && <p className="text-red-500 text-sm mt-2 font-medium">{error}</p>}
-              <button
-                type="submit"
-                disabled={loading || !childCode.trim()}
-                className="w-full mt-4 py-4 rounded-2xl bg-blue-600 text-white font-black text-base disabled:opacity-40 active:scale-95 transition-all flex items-center justify-center gap-2"
-              >
-                {loading ? <Loader2 size={18} className="animate-spin" /> : null}
-                {loading ? 'Logger inn…' : 'Logg inn'}
-              </button>
-            </div>
-          </form>
-        )}
-
-        {/* ── Staff login ── */}
+        {/* ── Staff / Ansatt ── */}
         {step === 'staff' && (
           <div className="flex flex-col gap-3">
-            <button type="button" onClick={() => { setStep('role'); setError(''); }} className="flex items-center gap-1 text-blue-200 text-sm mb-1">
+            <button
+              type="button"
+              onClick={() => { setStep('code'); setError(''); }}
+              className="flex items-center gap-1 text-blue-200 text-sm mb-1"
+            >
               <ArrowLeft size={15} />Tilbake
             </button>
 
-            {/* Quick-access buttons */}
             <button
               onClick={quickLoginAdmin}
               className="w-full bg-white rounded-3xl px-6 py-5 flex items-center justify-between shadow-xl active:scale-[0.98] transition-transform"
@@ -241,48 +276,29 @@ export default function LoginPage() {
 
             <button
               onClick={quickLoginStudent}
-              disabled={loading}
-              className="w-full bg-white rounded-3xl px-6 py-5 flex items-center justify-between shadow-xl active:scale-[0.98] transition-transform disabled:opacity-60"
+              className="w-full bg-white rounded-3xl px-6 py-5 flex items-center justify-between shadow-xl active:scale-[0.98] transition-transform"
             >
               <div className="text-left">
-                <p className="text-lg font-black text-gray-900">
-                  {loading ? <Loader2 size={18} className="animate-spin inline" /> : '👤'} Student
-                </p>
-                <p className="text-sm text-gray-500 mt-0.5">Logg inn som barn / ledsager</p>
+                <p className="text-lg font-black text-gray-900">👤 Student</p>
+                <p className="text-sm text-gray-500 mt-0.5">Kun visning</p>
               </div>
               <ChevronRight size={22} className="text-blue-500 flex-shrink-0" />
             </button>
 
             {error && <p className="text-red-300 text-sm text-center font-medium">{error}</p>}
 
-            {/* Code form — collapsed by default */}
-            <details className="group">
+            <details>
               <summary className="text-center text-blue-200/70 text-xs font-semibold cursor-pointer select-none py-1 list-none">
                 Logg inn med stab-kode ↓
               </summary>
               <form onSubmit={handleStaffLogin} className="mt-3">
-                <div className="bg-white rounded-3xl p-6 shadow-xl">
-                  <div className="flex flex-col gap-3">
-                    <input
-                      type="text"
-                      value={staffName}
-                      onChange={e => setStaffName(e.target.value)}
-                      placeholder="Ditt navn"
-                      className={inputCls}
-                    />
-                    <input
-                      type="password"
-                      value={staffCode}
-                      onChange={e => setStaffCode(e.target.value)}
-                      placeholder="Stab-kode"
-                      className={inputCls}
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={!staffName.trim() || !staffCode.trim()}
-                    className="w-full mt-4 py-4 rounded-2xl bg-gray-900 text-white font-black text-base disabled:opacity-40 active:scale-95 transition-all"
-                  >
+                <div className="bg-white rounded-3xl p-6 shadow-xl flex flex-col gap-3">
+                  <input type="text" value={staffName} onChange={e => setStaffName(e.target.value)}
+                    placeholder="Ditt navn" className={inputCls} />
+                  <input type="password" value={staffCode} onChange={e => setStaffCode(e.target.value)}
+                    placeholder="Stab-kode" className={inputCls} />
+                  <button type="submit" disabled={!staffName.trim() || !staffCode.trim()}
+                    className="w-full py-4 rounded-2xl bg-gray-900 text-white font-black text-base disabled:opacity-40 active:scale-95 transition-all">
                     Logg inn
                   </button>
                 </div>

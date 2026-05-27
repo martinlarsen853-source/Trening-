@@ -96,6 +96,16 @@ export type Absence = {
   registered_at: string;
 };
 
+export type Companion = {
+  id: string;
+  child_id: string;
+  name: string;
+  access_password: string | null;
+  is_primary: boolean;
+  invited_by: string | null;
+  created_at: string;
+};
+
 export type RoomCheckin = {
   id: string;
   room_name: string;

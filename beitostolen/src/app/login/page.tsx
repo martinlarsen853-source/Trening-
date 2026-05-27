@@ -119,13 +119,13 @@ export default function LoginPage() {
     >
       {/* Header */}
       <div className="mb-8 text-center">
-        <p className="text-[10px] font-bold tracking-[0.28em] text-blue-300 uppercase mb-1">
-          Beitostølen Helsesportsenter
-        </p>
         <h1 className="text-4xl font-black text-white leading-none tracking-tight drop-shadow-sm">
-          Gruppe 2C
+          Beitostølen
         </h1>
-        <p className="text-blue-200 text-sm mt-2">Oppholdsapp for barn og ledsagere</p>
+        <p className="text-[10px] font-bold tracking-[0.28em] text-blue-300 uppercase mt-2">
+          Helsesportsenter
+        </p>
+        <p className="text-blue-200 text-sm mt-3">Oppholdsapp for barn og ledsagere</p>
       </div>
 
       <div className="w-full max-w-sm">

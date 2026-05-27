@@ -138,8 +138,8 @@ export default function LoginPage() {
               className="w-full bg-white rounded-3xl px-6 py-5 flex items-center justify-between shadow-xl active:scale-[0.98] transition-transform"
             >
               <div className="text-left">
-                <p className="text-lg font-black text-gray-900">Forelder / ledsager</p>
-                <p className="text-sm text-gray-500 mt-0.5">Logg inn med barnets tilgangskode</p>
+                <p className="text-lg font-black text-gray-900">Student</p>
+                <p className="text-sm text-gray-500 mt-0.5">Logg inn med din tilgangskode</p>
               </div>
               <ChevronRight size={22} className="text-blue-500 flex-shrink-0" />
             </button>

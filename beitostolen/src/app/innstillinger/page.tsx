@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useTheme } from '@/components/ThemeProvider';
 
 function Toggle({ on, onToggle, label, description }: {
@@ -31,6 +32,7 @@ function Toggle({ on, onToggle, label, description }: {
 
 export default function InnstillingerPage() {
   const { dark, largeText, setDark, setLargeText } = useTheme();
+  const router = useRouter();
   const [lederMode, setLederMode] = useState(false);
   const [staffName, setStaffName] = useState('');
   const [groupName, setGroupName] = useState('Gruppe 2C');
@@ -73,6 +75,12 @@ export default function InnstillingerPage() {
   function handleGroupName(val: string) {
     setGroupName(val);
     if (val.trim()) localStorage.setItem('groupName', val.trim());
+  }
+
+  function handleLogout() {
+    const keys = ['isLoggedIn', 'lederMode', 'childId', 'childName', 'parentName', 'staffName', 'groupId', 'groupName'];
+    keys.forEach(k => localStorage.removeItem(k));
+    router.replace('/login');
   }
 
   return (
@@ -186,6 +194,16 @@ export default function InnstillingerPage() {
           </div>
         </div>
       )}
+
+      <div className="mt-8">
+        <button
+          onClick={handleLogout}
+          className="w-full py-4 rounded-3xl bg-red-50 border border-red-100 text-red-600 font-semibold text-sm active:scale-95 transition-all"
+        >
+          Logg ut
+        </button>
+        <p className="text-xs text-gray-400 text-center mt-2">Du sendes tilbake til innloggingssiden</p>
+      </div>
     </div>
   );
 }

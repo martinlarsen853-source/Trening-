@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useTheme } from '@/components/ThemeProvider';
 
 function Toggle({ on, onToggle, label, description }: {
@@ -16,193 +15,128 @@ function Toggle({ on, onToggle, label, description }: {
       </div>
       <button
         onClick={onToggle}
-        className={`relative w-14 h-7 rounded-full transition-colors duration-200 flex-shrink-0 ${
-          on ? 'bg-blue-600' : 'bg-gray-200'
-        }`}
+        className={`relative w-14 h-7 rounded-full transition-colors duration-200 flex-shrink-0 ${on ? 'bg-blue-600' : 'bg-gray-200'}`}
         aria-pressed={on}
         aria-label={label}
       >
-        <span className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-200 ${
-          on ? 'translate-x-8' : 'translate-x-1'
-        }`} />
+        <span className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-200 ${on ? 'translate-x-8' : 'translate-x-1'}`} />
       </button>
     </div>
   );
 }
 
+type LoginEntry = { id: string; code_used: string; entity_type: string; device_type: string | null; logged_at: string };
+
 export default function InnstillingerPage() {
   const { dark, largeText, setDark, setLargeText } = useTheme();
-  const router = useRouter();
-  const [lederMode, setLederMode] = useState(false);
+  const [role, setRole] = useState<'leder' | 'student' | 'ledsager'>('ledsager');
   const [staffName, setStaffName] = useState('');
-  const [groupName, setGroupName] = useState('Gruppe 2C');
-  const [childName, setChildNameState] = useState('');
-  const [parentName, setParentNameState] = useState('');
+  const [showLoginLog, setShowLoginLog] = useState(false);
+  const [loginLog, setLoginLog] = useState<LoginEntry[]>([]);
+  const [loadingLog, setLoadingLog] = useState(false);
 
   useEffect(() => {
-    setLederMode(localStorage.getItem('lederMode') === 'true');
+    if (localStorage.getItem('lederMode') === 'true') setRole('leder');
+    else if (localStorage.getItem('staffRole') === 'student') setRole('student');
+    else setRole('ledsager');
     setStaffName(localStorage.getItem('staffName') || '');
-    setGroupName(localStorage.getItem('groupName') || 'Gruppe 2C');
-    setChildNameState(localStorage.getItem('childName') || 'Evelina Larsen');
-    setParentNameState(localStorage.getItem('parentName') || 'Martin');
   }, []);
 
-  function handleChildName(val: string) {
-    setChildNameState(val);
-    if (val.trim()) localStorage.setItem('childName', val.trim());
-    else localStorage.removeItem('childName');
+  async function loadLoginLog() {
+    if (loginLog.length > 0) { setShowLoginLog(v => !v); return; }
+    setLoadingLog(true);
+    const { data } = await import('@/lib/supabase').then(m => m.supabase.from('login_log')
+      .select('id, code_used, entity_type, device_type, logged_at')
+      .order('logged_at', { ascending: false }).limit(50));
+    setLoginLog((data ?? []) as LoginEntry[]);
+    setLoadingLog(false);
+    setShowLoginLog(true);
   }
 
-  function handleParentName(val: string) {
-    setParentNameState(val);
-    if (val.trim()) localStorage.setItem('parentName', val.trim());
-    else localStorage.removeItem('parentName');
-  }
-
-  function toggleLeder(on: boolean) {
-    setLederMode(on);
-    if (on) localStorage.setItem('lederMode', 'true');
-    else localStorage.removeItem('lederMode');
-    window.location.reload();
-  }
-
-  function handleStaffName(val: string) {
-    setStaffName(val);
-    if (val.trim()) localStorage.setItem('staffName', val.trim());
-    else localStorage.removeItem('staffName');
-  }
-
-  function handleGroupName(val: string) {
-    setGroupName(val);
-    if (val.trim()) localStorage.setItem('groupName', val.trim());
-  }
-
-  function handleLogout() {
-    const keys = ['isLoggedIn', 'lederMode', 'childId', 'childName', 'parentName', 'staffName', 'groupId', 'groupName'];
-    keys.forEach(k => localStorage.removeItem(k));
-    router.replace('/login');
-  }
+  const isStaff = role === 'leder' || role === 'student';
 
   return (
     <div className="px-4 pt-4 pb-8 max-w-lg mx-auto">
       <h2 className="text-xl font-bold text-gray-900 mb-1">Innstillinger</h2>
       <p className="text-sm text-gray-500 mb-6">Visning og tilgjengelighet</p>
 
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm px-4 divide-y divide-gray-100 mb-4">
-        <Toggle
-          on={dark}
-          onToggle={() => setDark(!dark)}
-          label="Mørk modus"
-          description="Mørk bakgrunn — lettere på øynene i svakt lys"
-        />
-        <Toggle
-          on={largeText}
-          onToggle={() => setLargeText(!largeText)}
-          label="Større tekst"
-          description="Øker skriftstørrelsen i hele appen"
-        />
+      {/* Visning */}
+      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm px-4 divide-y divide-gray-100 mb-6">
+        <Toggle on={dark} onToggle={() => setDark(!dark)} label="Mørk modus" description="Mørk bakgrunn — lettere på øynene i svakt lys" />
+        <Toggle on={largeText} onToggle={() => setLargeText(!largeText)} label="Større tekst" description="Øker skriftstørrelsen i hele appen" />
       </div>
 
-      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">Barnets navn</p>
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm px-4 py-3 mb-2">
-        <input
-          type="text"
-          value={childName}
-          onChange={e => handleChildName(e.target.value)}
-          placeholder="F.eks. Evelina"
-          className="w-full text-sm font-semibold text-gray-900 outline-none placeholder:text-gray-300"
-        />
-      </div>
-      <p className="text-xs text-gray-400 mb-4 px-1">Brukes i timeplan, avbud og tilpasninger</p>
-
-      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">Foresattes navn</p>
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm px-4 py-3 mb-2">
-        <input
-          type="text"
-          value={parentName}
-          onChange={e => handleParentName(e.target.value)}
-          placeholder="F.eks. Marte Olsen"
-          className="w-full text-sm font-semibold text-gray-900 outline-none placeholder:text-gray-300"
-        />
-      </div>
-      <p className="text-xs text-gray-400 mb-4 px-1">Brukes i fellesrom og chat</p>
-
-      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">Gruppenavn</p>
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm px-4 py-3 mb-4">
-        <input
-          type="text"
-          value={groupName}
-          onChange={e => handleGroupName(e.target.value)}
-          placeholder="F.eks. Gruppe 2C"
-          className="w-full text-sm font-semibold text-gray-900 outline-none placeholder:text-gray-300"
-        />
-      </div>
-
-      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">Tilgang</p>
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm px-4">
-        <Toggle
-          on={lederMode}
-          onToggle={() => toggleLeder(!lederMode)}
-          label="Leder-modus"
-          description="Aktiver redigering av aktiviteter, fremmøte og status"
-        />
-      </div>
-
-      {lederMode && (
-        <div className="mt-4">
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">Ditt navn (leder)</p>
-          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm px-4 py-3 mb-4">
-            <input
-              type="text"
-              value={staffName}
-              onChange={e => handleStaffName(e.target.value)}
-              placeholder="F.eks. Martine"
-              className="w-full text-sm font-semibold text-gray-900 outline-none placeholder:text-gray-300"
-            />
-          </div>
-
+      {/* Leder-seksjoner */}
+      {role === 'leder' && (
+        <>
           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">Lederverktøy</p>
-          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm divide-y divide-gray-100 overflow-hidden">
-            <Link href="/admin/barn" className="flex items-center justify-between px-4 py-4 active:bg-gray-100 transition-colors">
+          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm divide-y divide-gray-100 overflow-hidden mb-6">
+            <Link href="/innstillinger/barn" className="flex items-center justify-between px-4 py-4 active:bg-gray-50">
               <div>
                 <p className="font-semibold text-gray-900">Barn og koder</p>
                 <p className="text-sm text-gray-500 mt-0.5">Legg til barn, se og generer tilgangskoder</p>
               </div>
               <span className="text-gray-300 text-lg">›</span>
             </Link>
-            <Link href="/ansatte" className="flex items-center justify-between px-4 py-4 active:bg-gray-100 transition-colors">
+            <Link href="/ansatte" className="flex items-center justify-between px-4 py-4 active:bg-gray-50">
               <div>
-                <p className="font-semibold text-gray-900">Administrer ansatte</p>
+                <p className="font-semibold text-gray-900">Ansatte</p>
                 <p className="text-sm text-gray-500 mt-0.5">Legg til, rediger eller fjern ansatte</p>
               </div>
               <span className="text-gray-300 text-lg">›</span>
             </Link>
-            <Link href="/timeplan" className="flex items-center justify-between px-4 py-4 active:bg-gray-100 transition-colors">
+            <button onClick={loadLoginLog} className="w-full flex items-center justify-between px-4 py-4 active:bg-gray-50 text-left">
               <div>
-                <p className="font-semibold text-gray-900">Timeplan (leder)</p>
-                <p className="text-sm text-gray-500 mt-0.5">Rediger aktiviteter og belastningsnivå</p>
+                <p className="font-semibold text-gray-900">Kodebruk-logg</p>
+                <p className="text-sm text-gray-500 mt-0.5">Se hvem som har logget inn og når</p>
               </div>
-              <span className="text-gray-300 text-lg">›</span>
-            </Link>
-            <Link href="/logg" className="flex items-center justify-between px-4 py-4 active:bg-gray-100 transition-colors">
-              <div>
-                <p className="font-semibold text-gray-900">Aktivitetslogg</p>
-                <p className="text-sm text-gray-500 mt-0.5">Se historikk over registrerte aktiviteter</p>
-              </div>
-              <span className="text-gray-300 text-lg">›</span>
-            </Link>
+              <span className="text-gray-300 text-lg">{loadingLog ? '…' : showLoginLog ? '↑' : '›'}</span>
+            </button>
+          </div>
+
+          {/* Login log inline */}
+          {showLoginLog && (
+            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm mb-6 overflow-hidden">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-4 pt-4 mb-2">Siste innlogginger</p>
+              {loginLog.length === 0 ? (
+                <p className="text-sm text-gray-400 px-4 pb-4">Ingen loggede innlogginger</p>
+              ) : (
+                <div className="divide-y divide-gray-50">
+                  {loginLog.map(l => (
+                    <div key={l.id} className="px-4 py-3 flex items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-mono font-bold text-sm text-blue-700">{l.code_used}</p>
+                        <p className="text-xs text-gray-400">{l.entity_type} · {l.device_type ?? 'ukjent enhet'}</p>
+                      </div>
+                      <p className="text-xs text-gray-400 flex-shrink-0">{new Date(l.logged_at).toLocaleString('nb')}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Staff name */}
+      {isStaff && staffName && (
+        <div className="mb-6">
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">Innlogget som</p>
+          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm px-4 py-3">
+            <p className="font-semibold text-gray-900">{staffName} ({role})</p>
           </div>
         </div>
       )}
 
-      <div className="mt-8">
-        <button
-          onClick={handleLogout}
-          className="w-full py-4 rounded-3xl bg-red-50 border border-red-100 text-red-600 font-semibold text-sm active:scale-95 transition-all"
-        >
-          Logg ut
-        </button>
-        <p className="text-xs text-gray-400 text-center mt-2">Du sendes tilbake til innloggingssiden</p>
+      {/* Public info link */}
+      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm divide-y divide-gray-100 mb-6">
+        <Link href="/info" className="flex items-center justify-between px-4 py-4 active:bg-gray-50">
+          <div>
+            <p className="font-semibold text-gray-900">Senterinformasjon</p>
+            <p className="text-sm text-gray-500 mt-0.5">Åpent for alle — kan deles med familien</p>
+          </div>
+          <span className="text-gray-300 text-lg">›</span>
+        </Link>
       </div>
     </div>
   );

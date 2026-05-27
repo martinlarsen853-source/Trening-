@@ -9,6 +9,19 @@ type Step = 'code' | 'companion_name' | 'staff';
 
 const STAFF_CODE = 'BHS-STAB';
 
+function deviceType() {
+  if (typeof navigator === 'undefined') return 'ukjent';
+  return /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ? 'mobil' : 'desktop';
+}
+
+async function logLogin(code: string, entity_type: string, entity_id: string | null) {
+  try {
+    await supabase.from('login_log').insert({
+      code_used: code, entity_type, entity_id, device_type: deviceType(),
+    });
+  } catch { /* ignore */ }
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>('code');
@@ -53,6 +66,7 @@ export default function LoginPage() {
         localStorage.removeItem('lederMode');
         localStorage.removeItem('staffRole');
         localStorage.removeItem('companionId');
+        await logLogin(clean, 'child', c.id);
         setLoading(false);
         router.replace('/');
         return;
@@ -91,6 +105,7 @@ export default function LoginPage() {
           return;
         }
 
+        await logLogin(clean, 'companion', cm.id);
         finishCompanionLogin(cm.id, cm.name, cm.child_id, ch?.name ?? '', ch?.group_id ?? '', label);
         return;
       }

@@ -1,10 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { type Activity, type StaffMember, type TimeplanActivity } from '@/lib/supabase';
+import { type Activity, type StaffMember, type TimeplanActivity, supabase } from '@/lib/supabase';
 import { StaffAvatar } from './StaffAvatar';
 import { FLAG_CONFIG } from './TransitionBadges';
-import { X } from 'lucide-react';
+import { X, Trash2 } from 'lucide-react';
+
+async function pushNotification(groupId: string, type: string, title: string, body?: string, activityId?: string) {
+  if (!groupId) return;
+  await supabase.from('notifications').insert({ group_id: groupId, type, title, body: body ?? null, activity_id: activityId ?? null });
+}
 
 const LOAD_OPTIONS = [
   { value: 'lav',     label: 'Lav',     bg: 'bg-green-500', ring: 'ring-green-400' },
@@ -27,13 +32,17 @@ export type ActivityEditUpdates = {
 export function ActivityEditModal({
   activity,
   allStaff,
+  groupId,
   onClose,
   onSaved,
+  onDeleted,
 }: {
   activity: Pick<Activity | TimeplanActivity, 'id' | 'name' | 'time_start' | 'time_end' | 'location' | 'notes' | 'load_level' | 'transition_flags' | 'transition_note'>;
   allStaff: StaffMember[];
+  groupId?: string;
   onClose: () => void;
   onSaved: (updates: ActivityEditUpdates) => void;
+  onDeleted?: () => void;
 }) {
   const [staffList, setStaffList] = useState<StaffMember[]>(allStaff);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -63,6 +72,8 @@ export function ActivityEditModal({
     });
   }
 
+  const [deleting, setDeleting] = useState(false);
+
   async function save() {
     setSaving(true);
     const transition_flags = [...flags];
@@ -78,8 +89,19 @@ export function ActivityEditModal({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, time_start, time_end, location: locationVal, notes: notesVal, load_level: loadLevel, staffIds: [...selected], transition_flags, transition_note }),
     });
+    if (groupId) await pushNotification(groupId, 'activity_updated', `${name} er endret`, `${time_start.slice(0,5)}–${time_end.slice(0,5)}${locationVal ? ` · ${locationVal}` : ''}`, activity.id);
     setSaving(false);
     onSaved({ name, time_start, time_end, location: locationVal, notes: notesVal, load_level: loadLevel, staffIds: [...selected], transition_flags, transition_note });
+    onClose();
+  }
+
+  async function deleteActivity() {
+    if (!window.confirm(`Slett aktiviteten «${activity.name}»?`)) return;
+    setDeleting(true);
+    await supabase.from('activities').delete().eq('id', activity.id);
+    if (groupId) await pushNotification(groupId, 'activity_deleted', `${activity.name} er slettet`, undefined, activity.id);
+    setDeleting(false);
+    onDeleted?.();
     onClose();
   }
 
@@ -241,14 +263,25 @@ export function ActivityEditModal({
             </div>
           </div>
 
-          <div className="px-5 pb-8">
+          <div className="px-5 pb-8 flex flex-col gap-2">
             <button
               onClick={save}
-              disabled={saving}
+              disabled={saving || deleting}
               className="w-full py-4 rounded-2xl bg-blue-600 text-white font-black text-base disabled:opacity-40"
             >
               {saving ? 'Lagrer…' : 'Lagre'}
             </button>
+            {onDeleted && (
+              <button
+                onClick={deleteActivity}
+                disabled={deleting || saving}
+                aria-label="Slett aktivitet"
+                className="w-full py-3 rounded-2xl bg-red-50 border border-red-100 text-red-600 font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-40"
+              >
+                <Trash2 size={14} aria-hidden />
+                {deleting ? 'Sletter…' : 'Slett aktivitet'}
+              </button>
+            )}
           </div>
         </div>
       </div>

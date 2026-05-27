@@ -4,160 +4,111 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import {
-  Activity, Calendar, Utensils, MessageCircle,
-  MoreHorizontal, Map, Home, Users, Settings, ExternalLink,
-} from 'lucide-react';
+import { Home, Calendar, Utensils, MessageCircle, Settings } from 'lucide-react';
 
-const MAIN_TABS = [
-  { href: '/',          label: 'Hjem',      Icon: Activity },
-  { href: '/timeplan',  label: 'Timeplan',  Icon: Calendar },
-  { href: '/fellesrom', label: 'Fellesrom', Icon: Home },
-  { href: '/chat',      label: 'Chat',      Icon: MessageCircle },
-] as const;
-
-const MORE_LINKS = [
-  { href: '/kart',        label: 'Kart',         Icon: Map,          external: false },
-  { href: '/mat',         label: 'Mat',           Icon: Utensils,     external: false },
-  { href: '/ansatte',     label: 'Ansatte',       Icon: Users,        external: false },
-  { href: 'https://ombudsmann-6u0j9kup8-martins-projects-f84ff334.vercel.app',
-                          label: 'Ombudsmann',    Icon: ExternalLink, external: true  },
-  { href: '/innstillinger', label: 'Innstillinger', Icon: Settings,   external: false },
-] as const;
+function useRole() {
+  const [role, setRole] = useState<'leder' | 'student' | 'ledsager'>('ledsager');
+  useEffect(() => {
+    if (localStorage.getItem('lederMode') === 'true') setRole('leder');
+    else if (localStorage.getItem('staffRole') === 'student') setRole('student');
+    else setRole('ledsager');
+  }, []);
+  return role;
+}
 
 export function NavBar() {
   const pathname = usePathname();
   const router = useRouter();
-  const [moreOpen, setMoreOpen] = useState(false);
+  const role = useRole();
+  const isStaff = role === 'leder' || role === 'student';
+  const chatHref = isStaff ? '/inbox' : '/chat';
+  const chatActive = isStaff ? pathname === '/inbox' : pathname === '/chat';
   const [chatUnread, setChatUnread] = useState(false);
 
   useEffect(() => {
-    if (pathname === '/chat') {
+    if (chatActive) {
       setChatUnread(false);
       return;
     }
-    const senderName = localStorage.getItem('lederMode') === 'true'
-      ? (localStorage.getItem('staffName') || 'Leder')
-      : (localStorage.getItem('parentName') || localStorage.getItem('childName') || '');
-    const seenGroupe = localStorage.getItem('msgSeenAt_gruppe') ?? new Date(0).toISOString();
-    const seenStab = localStorage.getItem('msgSeenAt_stab') ?? new Date(0).toISOString();
-    Promise.all([
-      supabase.from('messages').select('id', { count: 'exact', head: true })
-        .eq('channel', 'gruppe').gt('created_at', seenGroupe).neq('sender_name', senderName),
-      supabase.from('messages').select('id', { count: 'exact', head: true })
-        .eq('channel', 'stab').gt('created_at', seenStab).neq('sender_name', senderName),
-    ]).then(([g, s]) => {
-      setChatUnread((g.count ?? 0) + (s.count ?? 0) > 0);
-    });
-  }, [pathname]);
+    checkUnread();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname, role]);
 
-  const isMoreActive = MORE_LINKS.some(l => !l.external && pathname === l.href);
+  async function checkUnread() {
+    try {
+      if (isStaff) {
+        const since = localStorage.getItem('inboxSeenAt') ?? new Date(0).toISOString();
+        const { count } = await supabase
+          .from('inbox_messages')
+          .select('id', { count: 'exact', head: true })
+          .eq('sender_type', 'companion')
+          .gt('created_at', since);
+        setChatUnread((count ?? 0) > 0);
+      } else {
+        const senderName = localStorage.getItem('companionName') || localStorage.getItem('childName') || '';
+        const seenGroupe = localStorage.getItem('msgSeenAt_gruppe') ?? new Date(0).toISOString();
+        const childId = localStorage.getItem('childId') ?? '';
+        const threadSeen = localStorage.getItem(`threadSeenAt_${childId}`) ?? new Date(0).toISOString();
+
+        const [g, t] = await Promise.all([
+          supabase.from('messages').select('id', { count: 'exact', head: true })
+            .eq('channel', 'gruppe').gt('created_at', seenGroupe).neq('sender_name', senderName),
+          supabase.from('inbox_threads').select('id').eq('child_id', childId).maybeSingle(),
+        ]);
+        let threadUnread = 0;
+        if (t.data) {
+          const { count } = await supabase
+            .from('inbox_messages')
+            .select('id', { count: 'exact', head: true })
+            .eq('thread_id', (t.data as { id: string }).id)
+            .eq('sender_type', 'leder')
+            .gt('created_at', threadSeen);
+          threadUnread = count ?? 0;
+        }
+        setChatUnread((g.count ?? 0) + threadUnread > 0);
+      }
+    } catch { /* ignore */ }
+  }
+
+  const tabs = [
+    { href: '/',            label: 'Hjem',      Icon: Home        },
+    { href: '/timeplan',    label: 'Timeplan',  Icon: Calendar    },
+    { href: '/mat',         label: 'Mat',        Icon: Utensils    },
+    { href: chatHref,       label: 'Chat',       Icon: MessageCircle },
+    { href: '/innstillinger', label: 'Innst.',   Icon: Settings    },
+  ];
 
   return (
-    <>
-      {/* Bottom tab bar */}
-      <nav
-        className="fixed bottom-0 left-0 right-0 z-[999] bg-white/96 backdrop-blur-md border-t border-gray-100"
-        style={{
-          paddingBottom: 'env(safe-area-inset-bottom)',
-          boxShadow: '0 -1px 16px rgba(0,0,0,0.07)',
-          touchAction: 'manipulation',
-        }}
-      >
-        <div className="flex max-w-lg mx-auto">
-          {MAIN_TABS.map(({ href, label, Icon }) => {
-            const active = pathname === href;
-            const isChatTab = href === '/chat';
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={`flex-1 flex flex-col items-center gap-[3px] py-2.5 select-none transition-colors active:opacity-60 ${
-                  active ? 'text-blue-600' : 'text-gray-400'
-                }`}
-              >
-                <div className="relative">
-                  <Icon size={24} strokeWidth={active ? 2.5 : 1.8} />
-                  {isChatTab && chatUnread && (
-                    <span className="absolute -top-0.5 -right-1 w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-white" />
-                  )}
-                </div>
-                <span className="text-[10px] font-bold leading-none">{label}</span>
-              </Link>
-            );
-          })}
-
-          {/* Mer */}
-          <button
-            onClick={() => setMoreOpen(v => !v)}
-            className={`flex-1 flex flex-col items-center gap-[3px] py-2.5 select-none transition-colors ${
-              isMoreActive || moreOpen ? 'text-blue-600' : 'text-gray-400'
-            }`}
-          >
-            <MoreHorizontal size={24} strokeWidth={isMoreActive || moreOpen ? 2.5 : 1.8} />
-            <span className="text-[10px] font-bold leading-none">Mer</span>
-          </button>
-        </div>
-      </nav>
-
-      {/* Mer-drawer */}
-      {moreOpen && (
-        <>
-          <div
-            className="fixed inset-0 z-[999] bg-black/30 backdrop-blur-sm"
-            onClick={() => setMoreOpen(false)}
-          />
-          <div
-            className="fixed bottom-0 left-0 right-0 z-[1000] bg-white rounded-t-3xl max-w-lg mx-auto"
-            style={{
-              paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)',
-              boxShadow: '0 -4px 32px rgba(0,0,0,0.12)',
-            }}
-          >
-            <div className="flex justify-center pt-3 pb-4">
-              <div className="w-10 h-1 bg-gray-200 rounded-full" />
-            </div>
-            <div className="grid grid-cols-4 gap-y-5 gap-x-2 px-6 pb-2">
-              {MORE_LINKS.map(({ href, label, Icon, external }) => {
-                const active = !external && pathname === href;
-                const inner = (
-                  <>
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mx-auto ${
-                      active ? 'bg-blue-50' : 'bg-gray-50'
-                    }`}>
-                      <Icon size={22} className={active ? 'text-blue-600' : 'text-gray-500'} />
-                    </div>
-                    <span className={`text-[11px] font-semibold text-center leading-tight mt-1.5 block ${
-                      active ? 'text-blue-600' : 'text-gray-600'
-                    }`}>{label}</span>
-                  </>
-                );
-
-                return external ? (
-                  <a
-                    key={href}
-                    href={href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => setMoreOpen(false)}
-                    className="flex flex-col items-center active:opacity-60"
-                  >
-                    {inner}
-                  </a>
-                ) : (
-                  <button
-                    key={href}
-                    onClick={() => { router.push(href); setMoreOpen(false); }}
-                    className="flex flex-col items-center active:opacity-60"
-                  >
-                    {inner}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </>
-      )}
-    </>
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-[999] bg-white/96 backdrop-blur-md border-t border-gray-100"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)', boxShadow: '0 -1px 16px rgba(0,0,0,0.07)' }}
+      aria-label="Hovednavigasjon"
+    >
+      <div className="flex max-w-lg mx-auto">
+        {tabs.map(({ href, label, Icon }) => {
+          const active = href === chatHref ? chatActive : pathname === href;
+          const isChatTab = href === chatHref;
+          return (
+            <Link
+              key={href}
+              href={href}
+              aria-label={label}
+              aria-current={active ? 'page' : undefined}
+              className={`flex-1 flex flex-col items-center gap-[3px] py-2.5 select-none transition-colors active:opacity-60 min-h-[56px] justify-center ${
+                active ? 'text-blue-600' : 'text-gray-400'
+              }`}
+            >
+              <div className="relative">
+                <Icon size={24} strokeWidth={active ? 2.5 : 1.8} aria-hidden />
+                {isChatTab && chatUnread && (
+                  <span className="absolute -top-0.5 -right-1 w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-white" aria-label="Uleste meldinger" />
+                )}
+              </div>
+              <span className="text-[10px] font-bold leading-none">{label}</span>
+            </Link>
+          );
+        })}
+      </div>
+    </nav>
   );
 }

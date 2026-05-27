@@ -35,7 +35,9 @@ export default function LoggPage() {
   const [isStaff, setIsStaff] = useState(false);
 
   useEffect(() => {
-    setIsStaff(localStorage.getItem('lederMode') === 'true');
+    const leder = localStorage.getItem('lederMode') === 'true';
+    const student = localStorage.getItem('staffRole') === 'student';
+    setIsStaff(leder || student);
   }, []);
 
   useEffect(() => {
@@ -59,7 +61,7 @@ export default function LoggPage() {
   if (!isStaff) {
     return (
       <div className="px-4 pt-20 text-center">
-        <p className="text-gray-400 text-sm">Logg er kun tilgjengelig for ledere.</p>
+        <p className="text-gray-400 text-sm">Logg er kun tilgjengelig for stab.</p>
       </div>
     );
   }

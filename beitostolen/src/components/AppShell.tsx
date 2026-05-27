@@ -1,26 +1,37 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { NavBar } from './NavBar';
 import { WeatherWidget } from './WeatherWidget';
+import { LogOut } from 'lucide-react';
 
-const AUTH_PATHS = ['/login', '/signup'];
+const AUTH_PATHS = ['/login', '/signup', '/info'];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [groupName, setGroupName] = useState('Gruppe 2C');
+  const router = useRouter();
+  const [groupName, setGroupName] = useState('');
 
   useEffect(() => {
     Object.keys(localStorage)
       .filter(k => k.startsWith('sb-') && k.includes('-auth-token'))
       .forEach(k => localStorage.removeItem(k));
-    const stored = localStorage.getItem('groupName');
-    if (stored) setGroupName(stored);
+    setGroupName(localStorage.getItem('groupName') || 'Beitostølen');
   }, []);
+
   const isAuth = AUTH_PATHS.includes(pathname);
 
   if (isAuth) return <>{children}</>;
+
+  function handleLogout() {
+    const keys = [
+      'isLoggedIn','lederMode','staffRole','childId','childName',
+      'companionId','companionName','staffName','groupId','groupName',
+    ];
+    keys.forEach(k => localStorage.removeItem(k));
+    router.replace('/login');
+  }
 
   return (
     <>
@@ -41,10 +52,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </svg>
           <div className="relative z-10 px-5 pt-4 pb-6 flex items-start justify-between">
             <div>
-              <p className="text-[10px] font-bold tracking-[0.28em] text-blue-300 uppercase mb-1">Beitostølen Helsesportsenter</p>
-              <h1 className="text-[2.4rem] font-black text-white leading-none tracking-tight drop-shadow-sm">{groupName}</h1>
+              <p className="text-[10px] font-bold tracking-[0.28em] text-blue-300 uppercase mb-1">
+                Beitostølen Helsesportsenter
+              </p>
+              <h1 className="text-[2.4rem] font-black text-white leading-none tracking-tight drop-shadow-sm">
+                {groupName}
+              </h1>
             </div>
-            <WeatherWidget />
+            <div className="flex items-center gap-2 pt-1">
+              <WeatherWidget />
+              <button
+                onClick={handleLogout}
+                aria-label="Logg ut"
+                className="w-9 h-9 flex items-center justify-center rounded-2xl bg-white/10 border border-white/20 text-white active:scale-95 transition-transform"
+              >
+                <LogOut size={18} aria-hidden />
+              </button>
+            </div>
           </div>
         </header>
       </div>

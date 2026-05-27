@@ -203,10 +203,13 @@ export function ScheduleGrid() {
 
   const allDays = [...new Set(days.map((d) => d.dayOfWeek))].sort();
 
+  const [showAllChildren, setShowAllChildren] = useState(false);
+
   const dayData = days.find((d) => d.dayOfWeek === selectedDay);
-  const dayActivities = (dayData?.main ?? []).filter(
-    (a) => !a.target_child || a.target_child.toLowerCase() === (childName ?? '').toLowerCase()
-  );
+  const dayActivities = (dayData?.main ?? []).filter(a => {
+    if (isStaff || showAllChildren) return true;
+    return !a.target_child || a.target_child.toLowerCase() === (childName ?? '').toLowerCase();
+  });
   const dayFritid = dayData?.fritid ?? [];
   const meals = getMeals(selectedDay);
   const isWeekend = selectedDay >= 6;
@@ -254,6 +257,18 @@ export function ScheduleGrid() {
           </p>
         </div>
         <div className="flex items-center gap-1.5">
+          {!isStaff && (
+            <button
+              onClick={() => setShowAllChildren(v => !v)}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all active:scale-95 ${
+                showAllChildren ? 'bg-blue-600 text-white' : 'bg-white ring-1 ring-gray-200 text-gray-600'
+              }`}
+              aria-pressed={showAllChildren}
+              aria-label={showAllChildren ? 'Viser hele gruppen' : 'Viser bare mitt barn'}
+            >
+              {showAllChildren ? 'Hele gruppen' : 'Mitt barn'}
+            </button>
+          )}
           <button
             onClick={() => setPiktogram(p => !p)}
             className={`w-8 h-8 flex items-center justify-center rounded-full transition-all active:scale-95 ${

@@ -15,6 +15,7 @@ import { ActivityLogModal } from './ActivityLogModal';
 import { format } from 'date-fns';
 import { nb } from 'date-fns/locale';
 import { DagsformWidget } from './DagsformWidget';
+import { NotificationFeed } from './NotificationFeed';
 
 // ─── Time helpers (CEST = UTC+2) ─────────────────────────────────────────────
 
@@ -648,6 +649,8 @@ export function StatusDashboard() {
 
   return (
     <div className="px-4 pt-4 pb-8 flex flex-col gap-4">
+      {/* Notification feed */}
+      {!isStaff && <NotificationFeed />}
       {/* Greeting */}
       <div>
         <h2 className="text-xl font-bold text-gray-900">

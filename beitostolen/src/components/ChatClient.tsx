@@ -125,10 +125,13 @@ export function ChatClient() {
   const msgs = tab === 'gruppe' ? groupMsgs : inboxMsgs;
 
   return (
-    <div style={{ position: 'fixed', top: 110, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', paddingBottom: 'calc(57px + env(safe-area-inset-bottom, 0px))', backgroundColor: '#fff', zIndex: 10 }}>
+    <div
+      className="flex flex-col bg-white max-w-lg mx-auto"
+      style={{ height: 'calc(100svh - 110px)', paddingBottom: 'calc(57px + env(safe-area-inset-bottom, 0px))' }}
+    >
 
       {/* Tabs */}
-      <div className="flex gap-1 px-4 pt-3 pb-1">
+      <div className="flex gap-1 px-4 pt-3 pb-1 flex-shrink-0">
         {(['gruppe', 'med_leder'] as Tab[]).map(t => (
           <button key={t} onClick={() => setTab(t)}
             className={`flex-1 py-2.5 rounded-2xl text-sm font-semibold transition-all ${tab === t ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25' : 'bg-white text-gray-500 ring-1 ring-gray-100'}`}
@@ -139,7 +142,7 @@ export function ChatClient() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 min-h-0 overflow-y-auto px-4 flex flex-col gap-2 pb-2">
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 flex flex-col gap-2 py-2">
         {msgs.length === 0 && (
           <div className="flex flex-col items-center text-center mt-12 px-6 gap-2">
             <span className="text-4xl">{tab === 'gruppe' ? '💬' : '✉️'}</span>
@@ -181,7 +184,7 @@ export function ChatClient() {
       </div>
 
       {/* Input */}
-      <form onSubmit={send} className="px-4 pt-1 pb-1">
+      <form onSubmit={send} className="flex-shrink-0 px-4 pt-2 pb-2 border-t border-gray-100">
         {senderName && (
           <p className="text-[11px] text-gray-400 mb-1.5 pl-1">
             Sender som <span className="font-semibold text-gray-600">{senderName}</span>

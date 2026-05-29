@@ -107,9 +107,12 @@ export function LederInbox() {
 
   if (active) {
     return (
-      <div className="flex flex-col h-screen max-w-lg mx-auto">
+      <div
+        className="flex flex-col max-w-lg mx-auto bg-white"
+        style={{ height: 'calc(100svh - 110px)', paddingBottom: 'calc(57px + env(safe-area-inset-bottom, 0px))' }}
+      >
         {/* Thread header */}
-        <div className="px-4 pt-4 pb-3 border-b border-gray-100 flex items-center gap-3 bg-white">
+        <div className="flex-shrink-0 px-4 pt-4 pb-3 border-b border-gray-100 flex items-center gap-3">
           <button onClick={() => { setActive(null); loadThreads(); }} aria-label="Tilbake til innboks">
             <ArrowLeft size={20} className="text-gray-600" />
           </button>
@@ -120,7 +123,7 @@ export function LederInbox() {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3" style={{ paddingBottom: '80px' }}>
+        <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-3">
           {messages.length === 0 && (
             <div className="flex flex-col items-center text-center pt-12 px-6 gap-2">
               <span className="text-4xl">✉️</span>
@@ -146,8 +149,7 @@ export function LederInbox() {
         </div>
 
         {/* Input */}
-        <div className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto px-4 pb-4 pt-2 bg-white border-t border-gray-100"
-          style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
+        <div className="flex-shrink-0 px-4 pt-2 pb-3 bg-white border-t border-gray-100">
           <div className="flex gap-2 items-end">
             <textarea
               value={body}

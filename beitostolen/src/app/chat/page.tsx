@@ -7,9 +7,5 @@ const ChatClient = dynamic(
 );
 
 export default function ChatPage() {
-  return (
-    <div className="max-w-lg mx-auto">
-      <ChatClient />
-    </div>
-  );
+  return <ChatClient />;
 }

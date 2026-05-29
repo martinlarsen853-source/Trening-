@@ -20,6 +20,15 @@ import { NotificationFeed } from './NotificationFeed';
 // ─── Time helpers (CEST = UTC+2) ─────────────────────────────────────────────
 
 function cestDate() { return new Date(Date.now() + 2 * 3_600_000); }
+
+function greeting(firstName: string) {
+  const h = cestDate().getUTCHours();
+  const name = firstName ? `, ${firstName}` : '';
+  if (h < 10) return `God morgen${name} 🌅`;
+  if (h < 12) return `God formiddag${name} ☀️`;
+  if (h < 18) return `God ettermiddag${name} 👋`;
+  return `God kveld${name} 🌙`;
+}
 function nowHHMM() {
   const d = cestDate();
   return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
@@ -653,10 +662,10 @@ export function StatusDashboard() {
       {!isStaff && <NotificationFeed />}
       {/* Greeting */}
       <div>
-        <h2 className="text-xl font-bold text-gray-900">
-          {childName ? `Hei, ${childName.split(' ')[0]} 👋` : 'Hei! 👋'}
+        <h2 className="text-2xl font-black text-gray-900 leading-tight">
+          {greeting(childName.split(' ')[0])}
         </h2>
-        <p className="text-sm text-gray-500 capitalize">
+        <p className="text-sm text-gray-500 mt-0.5 capitalize">
           {format(cestDate(), 'EEEE d. MMMM', { locale: nb })}
         </p>
       </div>

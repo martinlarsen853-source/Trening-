@@ -1,10 +1,13 @@
 import type { Metadata, Viewport } from 'next';
+import { Inter } from 'next/font/google';
 import './globals.css';
 import { ServiceWorkerRegistrar } from '@/components/ServiceWorkerRegistrar';
 import { PushSubscriber } from '@/components/PushSubscriber';
 import { AuthGuard } from '@/components/AuthGuard';
 import { AppShell } from '@/components/AppShell';
 import { ThemeProvider } from '@/components/ThemeProvider';
+
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });
 
 export const metadata: Metadata = {
   title: 'Beitostølen 2C',
@@ -21,7 +24,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="nb" className="h-full">
+    <html lang="nb" className={`h-full ${inter.variable}`}>
       <body className="min-h-full bg-gray-50 text-gray-900 antialiased">
         <ServiceWorkerRegistrar />
         <PushSubscriber />

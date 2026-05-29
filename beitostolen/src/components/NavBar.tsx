@@ -81,7 +81,7 @@ export function NavBar() {
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-[999] bg-white/96 backdrop-blur-md border-t border-gray-100"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom)', boxShadow: '0 -1px 16px rgba(0,0,0,0.07)' }}
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)', boxShadow: '0 -1px 20px rgba(0,0,0,0.06)', touchAction: 'manipulation' }}
       aria-label="Hovednavigasjon"
     >
       <div className="flex max-w-lg mx-auto">
@@ -94,14 +94,14 @@ export function NavBar() {
               href={href}
               aria-label={label}
               aria-current={active ? 'page' : undefined}
-              className={`flex-1 flex flex-col items-center gap-[3px] py-2.5 select-none transition-colors active:opacity-60 min-h-[56px] justify-center ${
+              className={`flex-1 flex flex-col items-center gap-1 pt-2 pb-1 select-none min-h-[56px] justify-center transition-opacity active:opacity-50 ${
                 active ? 'text-blue-600' : 'text-gray-400'
               }`}
             >
-              <div className="relative">
-                <Icon size={24} strokeWidth={active ? 2.5 : 1.8} aria-hidden />
+              <div className={`relative px-3 py-1.5 rounded-xl transition-colors duration-150 ${active ? 'bg-blue-50' : ''}`}>
+                <Icon size={22} strokeWidth={active ? 2.5 : 1.8} aria-hidden />
                 {isChatTab && chatUnread && (
-                  <span className="absolute -top-0.5 -right-1 w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-white" aria-label="Uleste meldinger" />
+                  <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-red-500 border-2 border-white" aria-label="Uleste meldinger" />
                 )}
               </div>
               <span className="text-[10px] font-bold leading-none">{label}</span>

@@ -182,9 +182,10 @@ export function ChildOverview({ isAdmin }: { isAdmin: boolean }) {
       </div>
 
       {children.length === 0 && (
-        <div className="text-center py-16 text-gray-400">
-          <p className="text-4xl mb-3">👶</p>
-          <p className="text-sm">Ingen barn registrert i gruppen</p>
+        <div className="text-center py-16">
+          <p className="text-5xl mb-3">👶</p>
+          <p className="font-semibold text-gray-700">Ingen barn i gruppen</p>
+          <p className="text-sm text-gray-400 mt-1">Legg til barn via Innstillinger → Barn og koder</p>
         </div>
       )}
     </div>

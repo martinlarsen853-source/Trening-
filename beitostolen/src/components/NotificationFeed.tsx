@@ -78,7 +78,7 @@ export function NotificationFeed() {
           <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Oppdateringer</p>
           {newCount > 0 && (
             <span className="text-[10px] font-bold bg-red-500 text-white px-2 py-0.5 rounded-full">
-              {newCount} ny
+              {newCount} {newCount === 1 ? 'ny' : 'nye'}
             </span>
           )}
         </div>

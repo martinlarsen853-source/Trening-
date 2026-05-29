@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase, type Companion } from '@/lib/supabase';
 import { ALL_ADAPTATIONS } from '@/components/ChildAdaptations';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import {
   ArrowLeft, RefreshCw, Copy, Check, Trash2, UserPlus,
   Star, Edit2, X, ChevronDown, ChevronUp,
@@ -33,6 +34,7 @@ function CompanionSection({ childId, isAdmin }: { childId: string; isAdmin: bool
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(true);
+  const [confirmDeactivate, setConfirmDeactivate] = useState<Companion | null>(null);
 
   const myCompanionId = typeof window !== 'undefined' ? localStorage.getItem('companionId') : null;
 
@@ -58,6 +60,7 @@ function CompanionSection({ childId, isAdmin }: { childId: string; isAdmin: bool
 
   async function deactivate(id: string) {
     await supabase.rpc('deactivate_companion', { p_companion_id: id });
+    setConfirmDeactivate(null);
     await reload();
   }
 
@@ -144,7 +147,7 @@ function CompanionSection({ childId, isAdmin }: { childId: string; isAdmin: bool
                     )}
                     {canDeactivate(c) && (
                       <button
-                        onClick={() => deactivate(c.id)}
+                        onClick={() => setConfirmDeactivate(c)}
                         aria-label={`Deaktiver ${c.name || 'ledsager'}`}
                         className="w-9 h-9 flex items-center justify-center rounded-xl bg-red-50 text-red-400 active:scale-95"
                       >
@@ -169,6 +172,17 @@ function CompanionSection({ childId, isAdmin }: { childId: string; isAdmin: bool
             </button>
           )}
         </div>
+      )}
+
+      {confirmDeactivate && (
+        <ConfirmDialog
+          title="Deaktiver ledsager?"
+          message={`${confirmDeactivate.name || 'Ledsageren'} mister tilgangen og kan ikke logge inn lenger. Meldingshistorikk slettes.`}
+          confirmLabel="Deaktiver"
+          destructive
+          onConfirm={() => deactivate(confirmDeactivate.id)}
+          onCancel={() => setConfirmDeactivate(null)}
+        />
       )}
     </section>
   );

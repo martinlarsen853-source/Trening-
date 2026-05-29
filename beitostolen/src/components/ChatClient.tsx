@@ -141,9 +141,15 @@ export function ChatClient() {
       {/* Messages */}
       <div className="flex-1 min-h-0 overflow-y-auto px-4 flex flex-col gap-2 pb-2">
         {msgs.length === 0 && (
-          <p className="text-center text-sm text-gray-400 mt-8">
-            {tab === 'gruppe' ? 'Ingen meldinger ennå. Si hei! 👋' : 'Ingen meldinger fra lederen ennå.'}
-          </p>
+          <div className="flex flex-col items-center text-center mt-12 px-6 gap-2">
+            <span className="text-4xl">{tab === 'gruppe' ? '💬' : '✉️'}</span>
+            <p className="font-semibold text-gray-700 mt-1">Ingen meldinger ennå</p>
+            <p className="text-sm text-gray-400">
+              {tab === 'gruppe'
+                ? 'Vær den første — si hei til gruppen! 👋'
+                : 'Skriv en melding til lederen nedenfor, så svarer de så snart de kan.'}
+            </p>
+          </div>
         )}
         {tab === 'gruppe' && (groupMsgs as GroupMsg[]).map(msg => {
           const isMe = msg.sender_name === senderName;

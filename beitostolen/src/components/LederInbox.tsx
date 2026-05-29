@@ -122,7 +122,11 @@ export function LederInbox() {
         {/* Messages */}
         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3" style={{ paddingBottom: '80px' }}>
           {messages.length === 0 && (
-            <p className="text-center text-sm text-gray-400 pt-8">Ingen meldinger ennå. Skriv til ledsagerne.</p>
+            <div className="flex flex-col items-center text-center pt-12 px-6 gap-2">
+              <span className="text-4xl">✉️</span>
+              <p className="font-semibold text-gray-700 mt-1">Ingen meldinger ennå</p>
+              <p className="text-sm text-gray-400">Skriv den første meldingen til ledsagerne for {active.child_name}.</p>
+            </div>
           )}
           {messages.map(m => {
             const isMe = m.sender_type === 'leder';

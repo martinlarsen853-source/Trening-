@@ -367,31 +367,31 @@ function HomeActivityCard({ activity, liveStatus, staffMember, isCurrent, onClic
       {/* Card */}
       <button
         onClick={onClick}
-        className={`w-full text-left rounded-3xl border p-5 transition-all active:scale-[0.99] shadow-[0_2px_8px_rgba(0,0,0,0.04)] ${
-          isAvlyst
-            ? 'border-gray-200 bg-gray-100'
-            : isCurrent
-            ? 'border-emerald-200 bg-white hover:shadow-[0_4px_16px_rgba(0,0,0,0.07)]'
-            : 'border-gray-100 bg-white hover:border-gray-200 hover:shadow-[0_4px_16px_rgba(0,0,0,0.07)]'
+        className={`w-full text-left rounded-3xl border transition-all active:scale-[0.99] ${
+          isCurrent && !isAvlyst
+            ? 'p-5 border-emerald-200 bg-gradient-to-br from-emerald-50/60 to-white shadow-[0_4px_20px_rgba(16,185,129,0.12)]'
+            : isAvlyst
+            ? 'p-5 border-gray-200 bg-gray-100'
+            : 'p-4 border-gray-100 bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.07)]'
         }`}
       >
         <div className="flex items-start gap-3">
           {/* Time block */}
           <div className={`flex flex-col items-center justify-center rounded-2xl px-3 py-2 min-w-[68px] ${
             isCurrent && !isAvlyst
-              ? 'bg-gradient-to-br from-emerald-50 to-emerald-100'
+              ? 'bg-emerald-100'
               : 'bg-gradient-to-br from-blue-50 to-blue-100'
           }`}>
             <span className={`text-base font-bold tabular-nums leading-tight ${isCurrent && !isAvlyst ? 'text-emerald-900' : 'text-blue-900'}`}>
               {activity.time_start.slice(0, 5)}
             </span>
-            <span className={`text-[10px] font-medium tabular-nums tracking-wide ${isCurrent && !isAvlyst ? 'text-emerald-500' : 'text-blue-500'}`}>
+            <span className={`text-[10px] font-medium tabular-nums tracking-wide ${isCurrent && !isAvlyst ? 'text-emerald-600' : 'text-blue-500'}`}>
               — {activity.time_end.slice(0, 5)}
             </span>
           </div>
 
           <div className="flex-1 min-w-0 pt-0.5">
-            <p className={`font-bold text-base leading-tight tracking-tight ${isAvlyst ? 'line-through text-gray-400' : 'text-gray-900'}`}>
+            <p className={`leading-tight tracking-tight ${isAvlyst ? 'line-through text-gray-400 font-bold text-base' : isCurrent ? 'font-black text-lg text-gray-900' : 'font-bold text-base text-gray-900'}`}>
               {activity.name}
             </p>
             {load && (
@@ -652,14 +652,9 @@ export function StatusDashboard() {
   const mins = nowMins();
   const current = activities.find(a => toMins(a.time_start) <= mins && toMins(a.time_end) >= mins) ?? null;
   const nextUpcoming = activities.find(a => toMins(a.time_start) > mins) ?? null;
-  // After 15 min into current activity, promote next activity to featured
-  const isEarlyInCurrent = current ? (mins - toMins(current.time_start)) <= 15 : false;
-  const featured = (current && isEarlyInCurrent) ? current : (nextUpcoming ?? current);
 
   return (
     <div className="px-4 pt-4 pb-8 flex flex-col gap-4">
-      {/* Notification feed */}
-      {!isStaff && <NotificationFeed />}
       {/* Greeting */}
       <div>
         <h2 className="text-2xl font-black text-gray-900 leading-tight">
@@ -670,23 +665,42 @@ export function StatusDashboard() {
         </p>
       </div>
 
+      {/* NÅ / NESTE — most important element, at top */}
+      {loading ? (
+        <div className="flex flex-col gap-3">
+          <div className="rounded-3xl bg-gray-100 h-32 animate-pulse" />
+          <div className="rounded-3xl bg-gray-100 h-28 animate-pulse opacity-60" />
+        </div>
+      ) : !current && !nextUpcoming ? (
+        <NoActivityCard />
+      ) : (
+        <div className="flex flex-col gap-3">
+          {current && (
+            <HomeActivityCard
+              activity={current}
+              liveStatus={statuses[current.id] ?? null}
+              staffMember={current.staff_id ? (staffMap[current.staff_id] ?? null) : null}
+              isCurrent={true}
+              onClick={() => setDetailActivity(current)}
+            />
+          )}
+          {nextUpcoming && (
+            <HomeActivityCard
+              activity={nextUpcoming}
+              liveStatus={statuses[nextUpcoming.id] ?? null}
+              staffMember={nextUpcoming.staff_id ? (staffMap[nextUpcoming.staff_id] ?? null) : null}
+              isCurrent={false}
+              onClick={() => setDetailActivity(nextUpcoming)}
+            />
+          )}
+        </div>
+      )}
+
       {/* Dagsform */}
       <DagsformWidget childName={childName} isLeder={isStaff} />
 
-      {/* Activity card */}
-      {loading ? (
-        <div className="rounded-3xl bg-gray-100 h-36 animate-pulse" />
-      ) : featured ? (
-        <HomeActivityCard
-          activity={featured}
-          liveStatus={statuses[featured.id] ?? null}
-          staffMember={featured.staff_id ? (staffMap[featured.staff_id] ?? null) : null}
-          isCurrent={current !== null && featured.id === current.id}
-          onClick={() => setDetailActivity(featured)}
-        />
-      ) : (
-        <NoActivityCard />
-      )}
+      {/* Oppdateringer */}
+      {!isStaff && <NotificationFeed />}
 
       {/* Messages + Fellesrom */}
       <MessagesCard />

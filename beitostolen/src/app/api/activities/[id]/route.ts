@@ -38,6 +38,8 @@ export async function PATCH(
     staffIds?: string[];
     transition_flags?: string[];
     transition_note?: string | null;
+    packing_items?: string[];
+    target_child?: string | null;
   };
   const supabase = getSupabase();
 
@@ -50,6 +52,8 @@ export async function PATCH(
   if ('load_level' in body) activityUpdates.load_level = body.load_level ?? null;
   if ('transition_flags' in body) activityUpdates.transition_flags = body.transition_flags ?? [];
   if ('transition_note' in body) activityUpdates.transition_note = body.transition_note ?? null;
+  if ('packing_items' in body) activityUpdates.packing_items = body.packing_items ?? [];
+  if ('target_child' in body) activityUpdates.target_child = body.target_child ?? null;
 
   if (Object.keys(activityUpdates).length > 0) {
     const { error } = await supabase.from('activities').update(activityUpdates).eq('id', id);

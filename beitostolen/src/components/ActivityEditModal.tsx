@@ -27,42 +27,60 @@ export type ActivityEditUpdates = {
   staffIds: string[];
   transition_flags: string[];
   transition_note: string | null;
+  packing_items: string[];
+  target_child: string | null;
+};
+
+type CreateParams = {
+  week_start: string;
+  day_of_week: number;
+  group_id: string;
+  is_fritid?: boolean;
 };
 
 export function ActivityEditModal({
   activity,
   allStaff,
   groupId,
+  createParams,
   onClose,
   onSaved,
   onDeleted,
+  onCreated,
 }: {
-  activity: Pick<Activity | TimeplanActivity, 'id' | 'name' | 'time_start' | 'time_end' | 'location' | 'notes' | 'load_level' | 'transition_flags' | 'transition_note'>;
+  activity: Pick<Activity | TimeplanActivity, 'id' | 'name' | 'time_start' | 'time_end' | 'location' | 'notes' | 'load_level' | 'transition_flags' | 'transition_note' | 'packing_items'> | null;
   allStaff: StaffMember[];
   groupId?: string;
+  createParams?: CreateParams;
   onClose: () => void;
-  onSaved: (updates: ActivityEditUpdates) => void;
+  onSaved?: (updates: ActivityEditUpdates) => void;
   onDeleted?: () => void;
+  onCreated?: (activity: ActivityEditUpdates & { id: string }) => void;
 }) {
+  const isCreate = !activity;
   const [staffList, setStaffList] = useState<StaffMember[]>(allStaff);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [actName, setActName] = useState(activity.name);
-  const [timeStart, setTimeStart] = useState(activity.time_start.slice(0, 5));
-  const [timeEnd, setTimeEnd] = useState(activity.time_end.slice(0, 5));
-  const [location, setLocation] = useState(activity.location ?? '');
-  const [notes, setNotes] = useState(activity.notes ?? '');
-  const [loadLevel, setLoadLevel] = useState<Activity['load_level']>(activity.load_level);
-  const [flags, setFlags] = useState<Set<string>>(new Set(activity.transition_flags ?? []));
-  const [transNote, setTransNote] = useState<string>(activity.transition_note ?? '');
+  const [actName, setActName] = useState(activity?.name ?? '');
+  const [timeStart, setTimeStart] = useState(activity?.time_start.slice(0, 5) ?? '09:00');
+  const [timeEnd, setTimeEnd] = useState(activity?.time_end.slice(0, 5) ?? '10:00');
+  const [location, setLocation] = useState(activity?.location ?? '');
+  const [notes, setNotes] = useState(activity?.notes ?? '');
+  const [loadLevel, setLoadLevel] = useState<Activity['load_level']>(activity?.load_level ?? null);
+  const [flags, setFlags] = useState<Set<string>>(new Set(activity?.transition_flags ?? []));
+  const [transNote, setTransNote] = useState<string>(activity?.transition_note ?? '');
+  const [packingInput, setPackingInput] = useState('');
+  const [packingItems, setPackingItems] = useState<string[]>(activity?.packing_items ?? []);
+  const [targetChild, setTargetChild] = useState<string>('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => { setStaffList(allStaff); }, [allStaff]);
 
   useEffect(() => {
+    if (!activity?.id) return;
     fetch(`/api/activities/${activity.id}`)
       .then(r => r.json())
       .then(d => { if (d.staffIds) setSelected(new Set(d.staffIds as string[])); });
-  }, [activity.id]);
+  }, [activity?.id]);
 
   function toggle(id: string) {
     setSelected(prev => {
@@ -74,28 +92,50 @@ export function ActivityEditModal({
 
   const [deleting, setDeleting] = useState(false);
 
+  function addPackingItem() {
+    const item = packingInput.trim();
+    if (item && !packingItems.includes(item)) setPackingItems(prev => [...prev, item]);
+    setPackingInput('');
+  }
+
   async function save() {
     setSaving(true);
     const transition_flags = [...flags];
     const transition_note = transNote.trim() || null;
-    const name = actName.trim() || activity.name;
+    const name = actName.trim() || (activity?.name ?? 'Ny aktivitet');
     const time_start = timeStart + ':00';
     const time_end = timeEnd + ':00';
     const locationVal = location.trim() || null;
     const notesVal = notes.trim() || null;
+    const target_child = targetChild.trim() || null;
+    const staffIds = [...selected];
+    const updates: ActivityEditUpdates = { name, time_start, time_end, location: locationVal, notes: notesVal, load_level: loadLevel, staffIds, transition_flags, transition_note, packing_items: packingItems, target_child };
 
-    await fetch(`/api/activities/${activity.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, time_start, time_end, location: locationVal, notes: notesVal, load_level: loadLevel, staffIds: [...selected], transition_flags, transition_note }),
-    });
-    if (groupId) await pushNotification(groupId, 'activity_updated', `${name} er endret`, `${time_start.slice(0,5)}–${time_end.slice(0,5)}${locationVal ? ` · ${locationVal}` : ''}`, activity.id);
-    setSaving(false);
-    onSaved({ name, time_start, time_end, location: locationVal, notes: notesVal, load_level: loadLevel, staffIds: [...selected], transition_flags, transition_note });
+    if (isCreate && createParams) {
+      const res = await fetch('/api/activities', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...updates, ...createParams, staffIds }),
+      });
+      const json = await res.json() as { activity?: { id: string } };
+      if (groupId) await pushNotification(groupId, 'activity_created', `${name} er lagt til`, `${time_start.slice(0,5)}–${time_end.slice(0,5)}${locationVal ? ` · ${locationVal}` : ''}`, json.activity?.id);
+      setSaving(false);
+      onCreated?.({ ...updates, id: json.activity?.id ?? '' });
+    } else if (activity) {
+      await fetch(`/api/activities/${activity.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, time_start, time_end, location: locationVal, notes: notesVal, load_level: loadLevel, staffIds, transition_flags, transition_note, packing_items: packingItems, target_child }),
+      });
+      if (groupId) await pushNotification(groupId, 'activity_updated', `${name} er endret`, `${time_start.slice(0,5)}–${time_end.slice(0,5)}${locationVal ? ` · ${locationVal}` : ''}`, activity.id);
+      setSaving(false);
+      onSaved?.(updates);
+    }
     onClose();
   }
 
   async function deleteActivity() {
+    if (!activity) return;
     if (!window.confirm(`Slett aktiviteten «${activity.name}»?`)) return;
     setDeleting(true);
     await supabase.from('activities').delete().eq('id', activity.id);
@@ -119,8 +159,8 @@ export function ActivityEditModal({
 
           <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
             <div>
-              <p className="font-black text-gray-900">Rediger aktivitet</p>
-              <p className="text-xs text-gray-400">{activity.name}</p>
+              <p className="font-black text-gray-900">{isCreate ? 'Ny aktivitet' : 'Rediger aktivitet'}</p>
+              {!isCreate && <p className="text-xs text-gray-400">{activity?.name}</p>}
             </div>
             <button onClick={onClose}><X size={20} className="text-gray-400" /></button>
           </div>
@@ -229,6 +269,47 @@ export function ActivityEditModal({
                       </button>
                     );
                   })}
+                </div>
+              )}
+            </div>
+
+            {/* Target child */}
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Spesifikt barn (valgfritt)</p>
+              <input
+                type="text"
+                value={targetChild}
+                onChange={e => setTargetChild(e.target.value)}
+                placeholder="Barnets navn — la stå tomt for hele gruppen"
+                className="w-full border border-gray-200 rounded-2xl px-4 py-2.5 text-sm outline-none focus:border-blue-400"
+              />
+            </div>
+
+            {/* Packing list */}
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Pakkeliste / ta med</p>
+              <div className="flex gap-2 mb-2">
+                <input
+                  type="text"
+                  value={packingInput}
+                  onChange={e => setPackingInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addPackingItem(); } }}
+                  placeholder="F.eks. håndkle, badetøy…"
+                  className="flex-1 border border-gray-200 rounded-2xl px-4 py-2.5 text-sm outline-none focus:border-blue-400"
+                />
+                <button type="button" onClick={addPackingItem}
+                  className="px-4 rounded-2xl bg-blue-50 text-blue-600 font-semibold text-sm">
+                  Legg til
+                </button>
+              </div>
+              {packingItems.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {packingItems.map(item => (
+                    <span key={item} className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-semibold px-2.5 py-1 rounded-full">
+                      {item}
+                      <button type="button" onClick={() => setPackingItems(prev => prev.filter(i => i !== item))} className="text-blue-400 hover:text-blue-600">×</button>
+                    </span>
+                  ))}
                 </div>
               )}
             </div>

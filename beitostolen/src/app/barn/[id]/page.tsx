@@ -13,6 +13,7 @@ import {
 type Child = {
   id: string; name: string; group_id: string;
   adaptations: string[]; note: string | null; access_password: string | null;
+  allergies: string | null; health_info: string | null;
 };
 
 type FormLevel = 'grønn' | 'gul' | 'rød';
@@ -279,6 +280,160 @@ function AdaptationsSection({ child, isAdmin, onUpdated }: {
   );
 }
 
+/* ──────────────────────────────── Health info ──────────────────────────────── */
+
+function HealthSection({ child, isAdmin, onUpdated }: {
+  child: Child; isAdmin: boolean; onUpdated: (allergies: string | null, health: string | null) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [allergies, setAllergies] = useState(child.allergies ?? '');
+  const [health, setHealth] = useState(child.health_info ?? '');
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    setSaving(true);
+    await supabase.from('children').update({ allergies: allergies.trim() || null, health_info: health.trim() || null }).eq('id', child.id);
+    setSaving(false);
+    onUpdated(allergies.trim() || null, health.trim() || null);
+    setEditing(false);
+  }
+
+  const hasInfo = child.allergies || child.health_info;
+
+  return (
+    <section className="bg-white rounded-3xl border border-red-100 shadow-sm mb-4">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div>
+          <p className="font-bold text-gray-900">Helse og allergier</p>
+          <p className="text-xs text-gray-400">Sensitiv informasjon — kun for stab og ledsagere</p>
+        </div>
+        {isAdmin && (
+          <button onClick={() => setEditing(true)} className="flex items-center gap-1.5 text-blue-600 text-sm font-semibold">
+            <Edit2 size={13} /> Rediger
+          </button>
+        )}
+      </div>
+      <div className="px-5 py-4">
+        {!hasInfo && !editing && (
+          <p className="text-sm text-gray-400 italic">{isAdmin ? 'Trykk Rediger for å legge til' : 'Ingen informasjon registrert'}</p>
+        )}
+        {child.allergies && !editing && (
+          <div className="mb-2">
+            <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mb-1">Allergier</p>
+            <p className="text-sm text-gray-800 font-medium">{child.allergies}</p>
+          </div>
+        )}
+        {child.health_info && !editing && (
+          <div>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Viktig helseinfo</p>
+            <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{child.health_info}</p>
+          </div>
+        )}
+      </div>
+
+      {editing && (
+        <div className="fixed inset-0 z-[500] bg-black/70 backdrop-blur-sm flex items-end" onClick={() => setEditing(false)}>
+          <div className="w-full bg-white rounded-t-3xl max-w-lg mx-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-center pt-3"><div className="w-10 h-1 bg-gray-200 rounded-full" /></div>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <p className="font-black text-gray-900">Helse og allergier — {child.name}</p>
+              <button onClick={() => setEditing(false)}><X size={20} className="text-gray-400" /></button>
+            </div>
+            <div className="px-5 py-4 space-y-3">
+              <div>
+                <p className="text-xs font-bold text-red-500 uppercase tracking-widest mb-1.5">Allergier</p>
+                <input type="text" value={allergies} onChange={e => setAllergies(e.target.value)}
+                  placeholder="F.eks. nøtter, melk, gluten"
+                  className="w-full border border-gray-200 rounded-2xl px-4 py-2.5 text-sm outline-none focus:border-blue-400" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">Viktig helseinfo</p>
+                <textarea value={health} onChange={e => setHealth(e.target.value)} rows={3}
+                  placeholder="F.eks. medisinering, anfall, annen viktig info"
+                  className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-blue-400 resize-none" />
+              </div>
+            </div>
+            <div className="px-5 pb-8">
+              <button onClick={save} disabled={saving}
+                className="w-full py-4 rounded-2xl bg-blue-600 text-white font-black text-base disabled:opacity-40">
+                {saving ? 'Lagrer…' : 'Lagre'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+/* ──────────────────────────────── Daily highlights ─────────────────────────── */
+
+type Highlight = { id: string; date: string; text: string; author_name: string; created_at: string };
+
+function DailyHighlightSection({ childId, isAdmin }: { childId: string; isAdmin: boolean }) {
+  const [highlights, setHighlights] = useState<Highlight[]>([]);
+  const [text, setText] = useState('');
+  const [saving, setSaving] = useState(false);
+  const staffName = typeof window !== 'undefined' ? (localStorage.getItem('staffName') || localStorage.getItem('companionName') || '') : '';
+  const today = new Date(Date.now() + 2 * 3_600_000).toISOString().slice(0, 10);
+
+  useEffect(() => {
+    supabase.from('daily_highlights').select('*').eq('child_id', childId)
+      .order('created_at', { ascending: false }).limit(7)
+      .then(({ data }) => setHighlights((data ?? []) as Highlight[]));
+  }, [childId]);
+
+  async function addHighlight() {
+    if (!text.trim()) return;
+    setSaving(true);
+    const { data } = await supabase.from('daily_highlights').insert({
+      child_id: childId, date: today, text: text.trim(), author_name: staffName,
+    }).select().single();
+    if (data) setHighlights(prev => [data as Highlight, ...prev]);
+    setText('');
+    setSaving(false);
+  }
+
+  return (
+    <section className="bg-white rounded-3xl border border-amber-100 shadow-sm mb-4">
+      <div className="px-5 py-4 border-b border-gray-100">
+        <p className="font-bold text-gray-900">⭐ Dagens høydepunkt</p>
+        <p className="text-xs text-gray-400">Positive øyeblikk fra dagen</p>
+      </div>
+
+      {(isAdmin || !!staffName) && (
+        <div className="px-5 pt-4 pb-3 flex gap-2">
+          <input
+            type="text"
+            value={text}
+            onChange={e => setText(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') addHighlight(); }}
+            placeholder="Skriv noe positivt fra dagens dag…"
+            className="flex-1 border border-gray-200 rounded-2xl px-4 py-2.5 text-sm outline-none focus:border-amber-400"
+          />
+          <button onClick={addHighlight} disabled={saving || !text.trim()}
+            className="px-4 rounded-2xl bg-amber-400 text-white font-bold text-sm disabled:opacity-40 flex-shrink-0">
+            ⭐
+          </button>
+        </div>
+      )}
+
+      <div className="px-5 pb-4 space-y-2">
+        {highlights.length === 0 ? (
+          <p className="text-sm text-gray-400 py-2">Ingen høydepunkter registrert ennå</p>
+        ) : (
+          highlights.map(h => (
+            <div key={h.id} className="bg-amber-50 rounded-2xl px-4 py-3">
+              <p className="text-sm text-gray-800 leading-snug">⭐ {h.text}</p>
+              <p className="text-[10px] text-gray-400 mt-1">{h.date} · {h.author_name || 'Ukjent'}</p>
+            </div>
+          ))
+        )}
+      </div>
+    </section>
+  );
+}
+
 /* ──────────────────────────────── Activity log ──────────────────────────────── */
 
 function ActivityLogSection({ childId }: { childId: string }) {
@@ -410,12 +565,24 @@ export default function ChildProfilePage() {
         </div>
       </div>
 
+      {/* Health info (staff + companions only) */}
+      {(isAdmin || !!localStorage.getItem('companionId')) && (
+        <HealthSection
+          child={child}
+          isAdmin={isAdmin}
+          onUpdated={(allergies, health_info) => setChild(prev => prev ? { ...prev, allergies, health_info } : prev)}
+        />
+      )}
+
       {/* Adaptations */}
       <AdaptationsSection
         child={child}
         isAdmin={isAdmin}
         onUpdated={(adaptations, note) => setChild(prev => prev ? { ...prev, adaptations, note } : prev)}
       />
+
+      {/* Daily highlights */}
+      <DailyHighlightSection childId={childId} isAdmin={isAdmin} />
 
       {/* Companions */}
       <CompanionSection childId={childId} isAdmin={isAdmin} />

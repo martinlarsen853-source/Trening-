@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { startOfWeek, endOfWeek, format, parseISO, isValid } from 'date-fns';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase';
@@ -38,4 +38,47 @@ export async function GET(req: Request) {
     absences: absences ?? [],
     weekStart,
   }, { headers: CACHE_HEADERS });
+}
+
+// POST — create a new activity
+export async function POST(req: NextRequest) {
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+  const body = await req.json() as {
+    name: string; time_start: string; time_end: string;
+    week_start: string; day_of_week: number; group_id: string;
+    location?: string | null; notes?: string | null;
+    load_level?: string | null; is_fritid?: boolean;
+    target_child?: string | null;
+    packing_items?: string[];
+    staffIds?: string[];
+    transition_flags?: string[];
+    transition_note?: string | null;
+  };
+
+  const { data: act, error } = await supabase.from('activities').insert({
+    name: body.name,
+    time_start: body.time_start,
+    time_end: body.time_end,
+    week_start: body.week_start,
+    day_of_week: body.day_of_week,
+    group_id: body.group_id || null,
+    location: body.location ?? null,
+    notes: body.notes ?? null,
+    load_level: body.load_level ?? null,
+    is_fritid: body.is_fritid ?? false,
+    target_child: body.target_child ?? null,
+    packing_items: body.packing_items ?? [],
+    transition_flags: body.transition_flags ?? [],
+    transition_note: body.transition_note ?? null,
+  }).select().single();
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  if (body.staffIds?.length) {
+    await supabase.from('activity_staff').insert(
+      body.staffIds.map(staff_id => ({ activity_id: (act as { id: string }).id, staff_id }))
+    );
+  }
+
+  return NextResponse.json({ activity: act });
 }

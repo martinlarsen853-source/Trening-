@@ -92,6 +92,14 @@ export function ActivityCard({ activity, myAbsence, relevantAbsences, onClick, o
                 ))}
               </div>
             )}
+            {activity.packing_items?.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1.5">
+                <span className="text-[10px] text-gray-400 font-semibold self-center">Ta med:</span>
+                {activity.packing_items.map(item => (
+                  <span key={item} className="text-[10px] font-semibold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">{item}</span>
+                ))}
+              </div>
+            )}
             {activity.notes && (
               <p className="text-xs text-gray-400 mt-0.5 italic">{activity.notes}</p>
             )}

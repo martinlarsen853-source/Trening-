@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
       .select(`
         id,name,location,notes,time_start,time_end,day_of_week,
         group_name,target_child,is_adult_meeting,load_level,
-        transition_flags,transition_note,
+        transition_flags,transition_note,packing_items,
         staff_name,staff_id,is_fritid,
         activity_staff(staff_id, staff:staff_id(id,name,photo_url))
       `)
@@ -71,6 +71,7 @@ export async function GET(req: NextRequest) {
       load_level: act.load_level,
       transition_flags: (act.transition_flags as string[]) ?? [],
       transition_note: act.transition_note as string | null ?? null,
+      packing_items: (act.packing_items as string[]) ?? [],
       staff_name: act.staff_name,
       staff_id: act.staff_id,
       staff,

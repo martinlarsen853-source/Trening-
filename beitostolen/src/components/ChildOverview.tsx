@@ -35,6 +35,8 @@ const DOT: Record<string, string> = {
   rød:   'bg-red-500',
 };
 
+const STATUS_ORDER: Record<string, number> = { rød: 0, gul: 1, grønn: 2 };
+
 export function ChildOverview({ isAdmin }: { isAdmin: boolean }) {
   const router = useRouter();
   const [children, setChildren] = useState<ChildWithStatus[]>([]);
@@ -82,11 +84,10 @@ export function ChildOverview({ isAdmin }: { isAdmin: boolean }) {
         absenceMap[r.child_name] = (absenceMap[r.child_name] ?? 0) + 1;
       }
 
-      setChildren(((childRes.data ?? []) as Child[]).map(ch => ({
-        ...ch,
-        formLevel: checkinMap[ch.name] ?? null,
-        absenceCount: absenceMap[ch.name] ?? 0,
-      })));
+      const sorted = ((childRes.data ?? []) as Child[])
+        .map(ch => ({ ...ch, formLevel: checkinMap[ch.name] ?? null, absenceCount: absenceMap[ch.name] ?? 0 }))
+        .sort((a, b) => (STATUS_ORDER[a.formLevel ?? ''] ?? 3) - (STATUS_ORDER[b.formLevel ?? ''] ?? 3));
+      setChildren(sorted);
 
       const acts = (actRes.data ?? []) as NextActivity[];
       const next = acts.find(a => toMins(a.time_end) > nowMins) ?? null;
@@ -158,25 +159,23 @@ export function ChildOverview({ isAdmin }: { isAdmin: boolean }) {
         ))}
       </div>
 
-      {/* Children */}
-      <div className="flex flex-col gap-2">
+      {/* Children — compact rows, sorted rød→gul→grønn */}
+      <div className="flex flex-col gap-1.5">
         {children.map(child => (
           <button
             key={child.id}
             onClick={() => router.push(`/barn/${child.id}`)}
             aria-label={`Åpne profil for ${child.name}`}
-            className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-4 flex items-center gap-3 w-full text-left active:scale-[0.99] transition-transform min-h-[64px]"
+            className="bg-white rounded-xl border border-gray-100 shadow-sm px-3 py-2.5 flex items-center gap-2.5 w-full text-left active:scale-[0.99] transition-transform"
           >
-            <span className={`w-3.5 h-3.5 rounded-full flex-shrink-0 ${DOT[child.formLevel ?? ''] ?? 'bg-gray-200'}`} aria-hidden />
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-gray-900">{child.name}</p>
-              {child.absenceCount > 0 && (
-                <span className="text-[11px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full">
-                  {child.absenceCount} avbud
-                </span>
-              )}
-            </div>
-            <ChevronRight size={18} className="text-gray-300 flex-shrink-0" aria-hidden />
+            <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${DOT[child.formLevel ?? ''] ?? 'bg-gray-200'}`} aria-hidden />
+            <p className="flex-1 font-medium text-gray-900 text-sm truncate">{child.name}</p>
+            {child.absenceCount > 0 && (
+              <span className="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded-full flex-shrink-0">
+                {child.absenceCount} avbud
+              </span>
+            )}
+            <ChevronRight size={15} className="text-gray-300 flex-shrink-0" aria-hidden />
           </button>
         ))}
       </div>

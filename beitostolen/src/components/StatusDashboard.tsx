@@ -6,7 +6,7 @@ import { supabase, type Activity, type ActivityStatus, type StaffMember, type Ro
 import { StaffAvatar } from './StaffAvatar';
 import { ActivityEditModal } from './ActivityEditModal';
 import { AttendanceModal } from './AttendanceModal';
-import { MapPin, MessageCircle, Users, Clock, ChevronRight, Map } from 'lucide-react';
+import { MapPin, MessageCircle, Users, Clock, ChevronRight, Map, Info } from 'lucide-react';
 import { StaffSpotlightModal } from './StaffSpotlightModal';
 import { MapModal } from './MapModal';
 import { getBuilding } from '@/lib/locationMap';
@@ -702,9 +702,22 @@ export function StatusDashboard() {
       {/* Oppdateringer */}
       {!isStaff && <NotificationFeed />}
 
-      {/* Messages + Fellesrom */}
+      {/* Messages + Fellesrom + Senterinfo */}
       <MessagesCard />
       <FellesromMini />
+      <Link href="/senterinfo"
+        className="flex items-center justify-between bg-white rounded-2xl px-4 py-3.5 shadow-sm border border-gray-100 active:scale-[0.98] transition-all">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-teal-50 flex items-center justify-center flex-shrink-0">
+            <Info size={18} className="text-teal-600" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-gray-900">Praktisk senterinfo</p>
+            <p className="text-xs text-gray-400">WiFi, måltider, telefonnumre m.m.</p>
+          </div>
+        </div>
+        <ChevronRight size={16} className="text-gray-300" />
+      </Link>
 
       {/* Detail modal */}
       {detailActivity && (
@@ -729,9 +742,9 @@ export function StatusDashboard() {
           activity={editActivity}
           allStaff={Object.values(staffMap)}
           onClose={() => setEditActivity(null)}
-          onSaved={({ name, time_start, time_end, location, notes, load_level, staffIds, transition_flags, transition_note }) => {
+          onSaved={({ name, time_start, time_end, location, notes, load_level, staffIds, transition_flags, transition_note, packing_items }) => {
             setActivities(prev => prev.map(a =>
-              a.id === editActivity.id ? { ...a, name, time_start, time_end, location, notes, load_level, staff_id: staffIds[0] ?? null, transition_flags, transition_note } : a
+              a.id === editActivity.id ? { ...a, name, time_start, time_end, location, notes, load_level, staff_id: staffIds[0] ?? null, transition_flags, transition_note, packing_items: packing_items ?? [] } : a
             ));
           }}
         />

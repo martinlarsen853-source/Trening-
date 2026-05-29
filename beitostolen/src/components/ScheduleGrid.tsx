@@ -9,7 +9,7 @@ import { ActivityEditModal } from './ActivityEditModal';
 import { StaffAvatar } from './StaffAvatar';
 import { format, addDays, addWeeks, startOfWeek } from 'date-fns';
 import { nb } from 'date-fns/locale';
-import { Utensils, MessageCircle, X, LayoutGrid, List } from 'lucide-react';
+import { Utensils, MessageCircle, X, LayoutGrid, List, Plus } from 'lucide-react';
 import { PiktogramPlan } from './PiktogramPlan';
 
 const DAYS = ['Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør', 'Søn'];
@@ -45,6 +45,7 @@ export function ScheduleGrid() {
   );
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [editActivity, setEditActivity] = useState<TimeplanActivity | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
   const [expandedStaff, setExpandedStaff] = useState<{ id: string; name: string; photo_url: string | null } | null>(null);
   const [piktogram, setPiktogram] = useState(false);
 
@@ -264,6 +265,15 @@ export function ScheduleGrid() {
               {showAllChildren ? 'Hele gruppen' : 'Mitt barn'}
             </button>
           )}
+          {isStaff && (
+            <button
+              onClick={() => setShowCreate(true)}
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-600 text-white shadow-md shadow-blue-500/25 active:scale-95 transition-all"
+              aria-label="Ny aktivitet"
+            >
+              <Plus size={16} />
+            </button>
+          )}
           <button
             onClick={() => setPiktogram(p => !p)}
             className={`w-8 h-8 flex items-center justify-center rounded-full transition-all active:scale-95 ${
@@ -449,12 +459,35 @@ export function ScheduleGrid() {
         </div>
       )}
 
+      {showCreate && (
+        <ActivityEditModal
+          activity={null}
+          allStaff={staff}
+          groupId={typeof window !== 'undefined' ? (localStorage.getItem('groupId') ?? '') : ''}
+          createParams={{ week_start: targetWeekStart, day_of_week: selectedDay, group_id: typeof window !== 'undefined' ? (localStorage.getItem('groupId') ?? '') : '' }}
+          onClose={() => setShowCreate(false)}
+          onCreated={({ id, name, time_start, time_end, location, notes, load_level, staffIds, transition_flags, transition_note, packing_items, target_child }) => {
+            const staffId = staffIds[0] ?? null;
+            const staffMember = staff.find(s => s.id === staffId);
+            const staffArr = staffIds.map(sid => staff.find(s => s.id === sid)).filter((s): s is StaffMember => s != null).map(s => ({ id: s.id, name: s.name, photo_url: s.photo_url }));
+            const newAct: TimeplanActivity = { id, name, time_start, time_end, location, notes, load_level, day_of_week: selectedDay, group_name: null, target_child, is_adult_meeting: false, staff_id: staffId, staff_name: staffMember?.name ?? null, staff: staffArr, myAbsence: false, relevantAbsences: [], transition_flags, transition_note, packing_items: packing_items ?? [] };
+            setDays(prev => prev.map(d => d.dayOfWeek === selectedDay ? { ...d, main: [...d.main, newAct].sort((a, b) => a.time_start.localeCompare(b.time_start)) } : d));
+            setShowCreate(false);
+          }}
+        />
+      )}
+
       {editActivity && (
         <ActivityEditModal
           activity={editActivity}
           allStaff={staff}
+          groupId={typeof window !== 'undefined' ? (localStorage.getItem('groupId') ?? '') : ''}
           onClose={() => setEditActivity(null)}
-          onSaved={({ name, time_start, time_end, location, notes, load_level, staffIds, transition_flags, transition_note }) => {
+          onDeleted={() => {
+            setDays(prev => prev.map(d => ({ ...d, main: d.main.filter(a => a.id !== editActivity.id), fritid: d.fritid.filter(a => a.id !== editActivity.id) })));
+            setEditActivity(null);
+          }}
+          onSaved={({ name, time_start, time_end, location, notes, load_level, staffIds, transition_flags, transition_note, packing_items, target_child }) => {
             const staffId = staffIds[0] ?? null;
             const staffMember = staff.find((s) => s.id === staffId);
             const updatedStaff = staffIds
@@ -464,7 +497,7 @@ export function ScheduleGrid() {
             setDays((prev) => prev.map((day) => {
               const patch = (a: TimeplanActivity) =>
                 a.id === editActivity.id
-                  ? { ...a, name, time_start, time_end, location, notes, load_level, staff_id: staffId, staff_name: staffMember?.name ?? null, staff: updatedStaff, transition_flags, transition_note }
+                  ? { ...a, name, time_start, time_end, location, notes, load_level, staff_id: staffId, staff_name: staffMember?.name ?? null, staff: updatedStaff, transition_flags, transition_note, packing_items: packing_items ?? [], target_child }
                   : a;
               return { ...day, main: day.main.map(patch), fritid: day.fritid.map(patch) };
             }));

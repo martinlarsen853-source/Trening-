@@ -38,6 +38,7 @@ export type Activity = {
   staff_id: string | null;
   transition_flags: string[];
   transition_note: string | null;
+  packing_items: string[];
 };
 
 export type ChildProfile = {
@@ -141,6 +142,7 @@ export type TimeplanActivity = {
   relevantAbsences: string[];
   transition_flags: string[];
   transition_note: string | null;
+  packing_items: string[];
 };
 
 export type TimeplanDay = {

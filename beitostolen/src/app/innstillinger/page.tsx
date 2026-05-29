@@ -45,10 +45,9 @@ export default function InnstillingerPage() {
   async function loadLoginLog() {
     if (loginLog.length > 0) { setShowLoginLog(v => !v); return; }
     setLoadingLog(true);
-    const { data } = await import('@/lib/supabase').then(m => m.supabase.from('login_log')
-      .select('id, code_used, entity_type, device_type, logged_at')
-      .order('logged_at', { ascending: false }).limit(50));
-    setLoginLog((data ?? []) as LoginEntry[]);
+    const res = await fetch('/api/login-log');
+    const json = await res.json();
+    setLoginLog((json.entries ?? []) as LoginEntry[]);
     setLoadingLog(false);
     setShowLoginLog(true);
   }

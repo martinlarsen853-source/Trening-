@@ -1,0 +1,103 @@
+'use client';
+
+import { useState } from 'react';
+import type { TimeplanActivity } from '@/lib/supabase';
+import { X } from 'lucide-react';
+
+type Props = {
+  activity: TimeplanActivity;
+  myAbsence: boolean;
+  otherAbsences: string[];
+  childName: string;
+  onClose: () => void;
+  onToggle: () => Promise<void>;
+  isStaff?: boolean;
+  onEdit?: () => void;
+};
+
+export function AbsenceModal({ activity, myAbsence, otherAbsences, childName, onClose, onToggle, isStaff, onEdit }: Props) {
+  const [loading, setLoading] = useState(false);
+
+  async function handleToggle() {
+    setLoading(true);
+    await onToggle();
+    setLoading(false);
+    onClose();
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[1000] flex items-end justify-center bg-black/40 px-0 sm:items-center sm:px-4"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md p-6">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <p className="text-xs font-medium text-blue-600 uppercase tracking-wide mb-1">
+              {['', 'Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag'][activity.day_of_week]}
+            </p>
+            <h2 className="text-xl font-bold text-gray-900">{activity.name}</h2>
+            <p className="text-gray-500 text-sm">
+              {activity.time_start.slice(0, 5)} – {activity.time_end.slice(0, 5)}
+              {activity.location && ` · ${activity.location}`}
+            </p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-1 -mr-1">
+            <X size={22} />
+          </button>
+        </div>
+
+        {activity.notes && (
+          <div className="mb-4 bg-blue-50 rounded-2xl p-3.5">
+            <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-2">Detaljer</p>
+            <div className="flex flex-col gap-1">
+              {activity.notes.split(' · ').map((line, i) => (
+                <p key={i} className="text-sm text-gray-700 leading-snug">{line}</p>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {otherAbsences.length > 0 && (
+          <div className="mb-4">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Melder ikke</p>
+            <div className="flex flex-wrap gap-2">
+              {otherAbsences.map((name) => (
+                <span key={name} className="bg-red-100 text-red-700 text-sm font-medium px-3 py-1 rounded-full">
+                  {name}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="border-t border-gray-100 pt-4 flex flex-col gap-2">
+          {isStaff && onEdit && (
+            <button
+              onClick={() => { onClose(); onEdit(); }}
+              className="w-full rounded-xl py-3 text-base font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 active:scale-95 transition-transform"
+            >
+              Rediger aktivitet →
+            </button>
+          )}
+          <p className="text-sm text-gray-600 mb-1">
+            {myAbsence
+              ? `Du har meldt ${childName} som ikke kommende.`
+              : `Meld ${childName} som ikke kommende til denne aktiviteten?`}
+          </p>
+          <button
+            onClick={handleToggle}
+            disabled={loading}
+            className={`w-full rounded-xl py-3.5 text-base font-semibold active:scale-95 transition-transform disabled:opacity-50 ${
+              myAbsence
+                ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                : 'bg-red-500 text-white hover:bg-red-600'
+            }`}
+          >
+            {loading ? '...' : myAbsence ? 'Angre avbud' : 'Meld avbud'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

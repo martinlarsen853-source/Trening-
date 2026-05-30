@@ -1,16 +1,8 @@
 {
-  "crons": [
+  "builds": [
     {
-      "path": "/api/sync",
-      "schedule": "0 6 * * *"
-    },
-    {
-      "path": "/api/reports",
-      "schedule": "0 7 * * 1"
-    },
-    {
-      "path": "/api/alerts",
-      "schedule": "0 8 * * *"
+      "src": "beitostolen/package.json",
+      "use": "@vercel/next"
     }
   ]
 }

@@ -1,0 +1,764 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { supabase, type Activity, type ActivityStatus, type StaffMember, type RoomCheckin, type ChildProfile } from '@/lib/supabase';
+import { StaffAvatar } from './StaffAvatar';
+import { ActivityEditModal } from './ActivityEditModal';
+import { AttendanceModal } from './AttendanceModal';
+import { MapPin, MessageCircle, Users, Clock, ChevronRight, Map, Info } from 'lucide-react';
+import { StaffSpotlightModal } from './StaffSpotlightModal';
+import { MapModal } from './MapModal';
+import { getBuilding } from '@/lib/locationMap';
+import { TransitionBadges } from './TransitionBadges';
+import { ActivityLogModal } from './ActivityLogModal';
+import { format } from 'date-fns';
+import { nb } from 'date-fns/locale';
+import { DagsformWidget } from './DagsformWidget';
+import { NotificationFeed } from './NotificationFeed';
+
+// ─── Time helpers (CEST = UTC+2) ─────────────────────────────────────────────
+
+function cestDate() { return new Date(Date.now() + 2 * 3_600_000); }
+
+function greeting(firstName: string) {
+  const h = cestDate().getUTCHours();
+  const name = firstName ? `, ${firstName}` : '';
+  if (h < 10) return `God morgen${name} 🌅`;
+  if (h < 12) return `God formiddag${name} ☀️`;
+  if (h < 18) return `God ettermiddag${name} 👋`;
+  return `God kveld${name} 🌙`;
+}
+function nowHHMM() {
+  const d = cestDate();
+  return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
+}
+function nowMins() { const [h, m] = nowHHMM().split(':').map(Number); return h * 60 + m; }
+function toMins(t: string) { const [h, m] = t.slice(0, 5).split(':').map(Number); return h * 60 + m; }
+function todayDayOfWeek() { const d = cestDate().getUTCDay(); return d === 0 ? 7 : d; }
+function currentWeekStart() {
+  const d = cestDate();
+  const day = d.getUTCDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setUTCDate(d.getUTCDate() + diff);
+  return d.toISOString().slice(0, 10);
+}
+function formatUntil(timeStr: string) {
+  const diff = toMins(timeStr) - nowMins();
+  if (diff <= 0) return null;
+  if (diff < 60) return `om ${diff} min`;
+  const h = Math.floor(diff / 60), m = diff % 60;
+  return m > 0 ? `om ${h}t ${m}min` : `om ${h}t`;
+}
+function formatRemaining(timeStr: string) {
+  const diff = toMins(timeStr) - nowMins();
+  if (diff <= 0) return null;
+  if (diff < 60) return `Slutter om ${diff} min`;
+  return `Slutter om ${Math.floor(diff / 60)}t ${diff % 60}min`;
+}
+
+const LOAD = {
+  lav:     { bg: 'bg-green-100',  text: 'text-green-700',  label: 'Lav belastning'     },
+  middels: { bg: 'bg-amber-100',  text: 'text-amber-700',  label: 'Middels belastning' },
+  høy:     { bg: 'bg-red-100',    text: 'text-red-700',    label: 'Høy belastning'     },
+} as const;
+
+const STATUS_META = {
+  pågår:     { label: 'Pågår',     bg: 'bg-green-100',  text: 'text-green-700',  dot: 'bg-green-500'  },
+  forsinket: { label: 'Forsinket', bg: 'bg-amber-100',  text: 'text-amber-700',  dot: 'bg-amber-400'  },
+  avlyst:    { label: 'Avlyst',    bg: 'bg-red-100',    text: 'text-red-700',    dot: 'bg-red-500'    },
+  flyttet:   { label: 'Flyttet',   bg: 'bg-blue-100',   text: 'text-blue-700',   dot: 'bg-blue-500'   },
+} as const;
+
+// ─── StatusPicker (leder only) ────────────────────────────────────────────────
+
+function StatusPicker({ activityId, current, note, staffName, date, onSave, onClose }: {
+  activityId: string; current: ActivityStatus['status'] | null; note: string | null;
+  staffName: string; date: string; onSave: (s: ActivityStatus) => void; onClose: () => void;
+}) {
+  const [picked, setPicked] = useState<ActivityStatus['status'] | null>(current);
+  const [noteVal, setNoteVal] = useState(note ?? '');
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    if (!picked) return;
+    setSaving(true);
+    const { data, error } = await supabase
+      .from('activity_status')
+      .upsert(
+        { activity_id: activityId, date, status: picked, note: noteVal || null, updated_by: staffName, updated_at: new Date().toISOString() },
+        { onConflict: 'activity_id,date' }
+      )
+      .select().single();
+    setSaving(false);
+    if (!error && data) onSave(data as ActivityStatus);
+    onClose();
+  }
+  async function clear() {
+    await supabase.from('activity_status').delete().match({ activity_id: activityId, date });
+    onClose();
+  }
+
+  return (
+    <div className="fixed inset-0 z-[1050] bg-black/70 backdrop-blur-sm flex items-end" onClick={onClose}>
+      <div className="w-full bg-white rounded-t-3xl max-w-lg mx-auto p-5" onClick={e => e.stopPropagation()}>
+        <div className="flex justify-center mb-4"><div className="w-10 h-1 bg-gray-200 rounded-full" /></div>
+        <p className="font-bold text-gray-900 mb-3">Sett status</p>
+        <div className="grid grid-cols-3 gap-2 mb-4">
+          {(['forsinket', 'avlyst', 'flyttet'] as const).map(s => {
+            const m = STATUS_META[s];
+            return (
+              <button key={s} onClick={() => setPicked(s)}
+                className={`py-2.5 rounded-2xl text-sm font-bold border-2 transition-all ${
+                  picked === s ? `${m.bg} ${m.text} border-current` : 'bg-gray-50 text-gray-500 border-transparent'
+                }`}>{m.label}</button>
+            );
+          })}
+        </div>
+        {(picked === 'forsinket' || picked === 'flyttet') && (
+          <input
+            className="w-full border border-gray-200 rounded-2xl px-4 py-2.5 text-sm mb-4 outline-none focus:border-blue-400"
+            placeholder={picked === 'forsinket' ? 'F.eks. starter kl 11:45' : 'F.eks. flyttet til Gymsal'}
+            value={noteVal} onChange={e => setNoteVal(e.target.value)}
+          />
+        )}
+        <div className="flex gap-2">
+          {current && (
+            <button onClick={clear} className="flex-1 py-3 rounded-2xl bg-gray-100 text-gray-600 font-semibold text-sm">Fjern status</button>
+          )}
+          <button onClick={save} disabled={!picked || saving}
+            className="flex-1 py-3 rounded-2xl bg-blue-600 text-white font-bold text-sm disabled:opacity-40">
+            {saving ? 'Lagrer…' : 'Lagre'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Activity detail modal ────────────────────────────────────────────────────
+
+function ActivityDetailModal({ activity, liveStatus, staffMember, children, isLeder, staffName, date, onStatusSave, onEdit, onAttendance, onClose }: {
+  activity: Activity;
+  liveStatus: ActivityStatus | null;
+  staffMember: StaffMember | null;
+  children: ChildProfile[];
+  isLeder: boolean;
+  staffName: string;
+  date: string;
+  onStatusSave: (s: ActivityStatus) => void;
+  onEdit?: () => void;
+  onAttendance?: () => void;
+  onClose: () => void;
+}) {
+  const [showStatusPicker, setShowStatusPicker] = useState(false);
+  const [spotlight, setSpotlight] = useState<{ name: string; photoUrl: string | null } | null>(null);
+  const [showMap, setShowMap] = useState(false);
+  const [showLog, setShowLog] = useState(false);
+
+  const isAvlyst = liveStatus?.status === 'avlyst';
+  const isCurrent = toMins(activity.time_start) <= nowMins() && toMins(activity.time_end) >= nowMins();
+  const displayName = staffMember?.name ?? activity.staff_name;
+  const load = activity.load_level ? LOAD[activity.load_level] : null;
+  const statusMeta = liveStatus ? STATUS_META[liveStatus.status] : null;
+  const buildingId = getBuilding(activity.location, activity.name);
+
+  return (
+    <>
+      <div className="fixed inset-0 z-[1000] bg-black/70 backdrop-blur-sm flex items-end" onClick={onClose}>
+        <div
+          className="w-full bg-white rounded-t-3xl max-w-lg mx-auto overflow-y-auto"
+          style={{ maxHeight: '92vh' }}
+          onClick={e => e.stopPropagation()}
+        >
+          {/* Handle */}
+          <div className="flex justify-center pt-3 pb-2 sticky top-0 bg-white z-10">
+            <div className="w-10 h-1 bg-gray-200 rounded-full" />
+          </div>
+
+          <div className="px-5" style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}>
+            {/* Header */}
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  {statusMeta ? (
+                    <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full ${statusMeta.bg} ${statusMeta.text}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${statusMeta.dot}`} />{statusMeta.label}
+                      {liveStatus?.note && <span className="font-normal"> · {liveStatus.note}</span>}
+                    </span>
+                  ) : isCurrent ? (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />Pågår nå
+                    </span>
+                  ) : null}
+                </div>
+                <h2 className={`text-2xl font-black ${isAvlyst ? 'line-through text-gray-400' : 'text-gray-900'}`}>
+                  {activity.name}
+                </h2>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  {activity.time_start.slice(0, 5)} – {activity.time_end.slice(0, 5)}
+                  {isCurrent && !isAvlyst && (() => { const r = formatRemaining(activity.time_end); return r ? ` · ${r}` : ''; })()}
+                  {!isCurrent && !isAvlyst && (() => { const u = formatUntil(activity.time_start); return u ? ` · Starter ${u}` : ''; })()}
+                </p>
+              </div>
+              <button onClick={onClose} className="text-gray-400 text-2xl leading-none w-8 h-8 flex items-center justify-center flex-shrink-0">×</button>
+            </div>
+
+            {/* Load + location + kart */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              {activity.location && (
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-600 bg-gray-100 px-3 py-1.5 rounded-full">
+                  <MapPin size={12} className="text-blue-500" />{activity.location}
+                </span>
+              )}
+              {load && (
+                <span className={`inline-flex items-center text-xs font-semibold px-3 py-1.5 rounded-full ${load.bg} ${load.text}`}>
+                  {load.label}
+                </span>
+              )}
+              {buildingId && (
+                <button
+                  onClick={() => setShowMap(true)}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-full active:scale-95 transition-transform"
+                >
+                  <Map size={11} />Vis på kart
+                </button>
+              )}
+            </div>
+
+            {/* Staff — tappable for spotlight */}
+            {displayName && (
+              <button
+                onClick={() => setSpotlight({ name: displayName, photoUrl: staffMember?.photo_url ?? null })}
+                className="flex items-center gap-3 mb-5 bg-gray-50 rounded-2xl px-4 py-3 w-full text-left active:scale-[0.98] transition-transform"
+              >
+                <StaffAvatar name={displayName} photoUrl={staffMember?.photo_url ?? null} size="lg" />
+                <div className="flex-1">
+                  <p className="text-xs text-gray-400 font-medium">Ansvarlig — trykk for stort bilde</p>
+                  <p className="font-semibold text-gray-900 text-sm">{displayName}</p>
+                  {staffMember?.title && <p className="text-xs text-gray-500">{staffMember.title}</p>}
+                </div>
+              </button>
+            )}
+
+            {/* Children attending */}
+            {children.length > 0 && (
+              <div className="mb-5">
+                <p className="text-[10px] font-bold tracking-widest text-gray-400 uppercase mb-2">
+                  <Users size={10} className="inline mr-1" />Barn i gruppen
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {children.map(c => (
+                    <span key={c.id} className="text-sm font-semibold bg-blue-50 text-blue-700 px-3 py-1 rounded-full">
+                      {c.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Leder actions */}
+            {isLeder && (
+              <div className="flex flex-wrap gap-2">
+                <button onClick={() => setShowStatusPicker(true)}
+                  className="flex-1 py-3 rounded-2xl bg-gray-100 text-gray-700 font-semibold text-sm active:scale-95 transition-all">
+                  Sett status
+                </button>
+                {onAttendance && (
+                  <button onClick={onAttendance}
+                    className="flex-1 py-3 rounded-2xl bg-gray-100 text-gray-700 font-semibold text-sm active:scale-95 transition-all">
+                    Fremmøte
+                  </button>
+                )}
+                <button onClick={() => setShowLog(true)}
+                  className="flex-1 py-3 rounded-2xl bg-gray-100 text-gray-700 font-semibold text-sm active:scale-95 transition-all">
+                  Logg
+                </button>
+                {onEdit && (
+                  <button onClick={onEdit}
+                    className="flex-1 py-3 rounded-2xl bg-blue-600 text-white font-bold text-sm active:scale-95 transition-all">
+                    Rediger
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {showStatusPicker && (
+          <StatusPicker
+            activityId={activity.id}
+            current={liveStatus?.status ?? null}
+            note={liveStatus?.note ?? null}
+            staffName={staffName}
+            date={date}
+            onSave={s => { onStatusSave(s); }}
+            onClose={() => setShowStatusPicker(false)}
+          />
+        )}
+      </div>
+
+      {spotlight && (
+        <StaffSpotlightModal
+          name={spotlight.name}
+          photoUrl={spotlight.photoUrl}
+          onClose={() => setSpotlight(null)}
+        />
+      )}
+      {showMap && buildingId && (
+        <MapModal
+          location={activity.location!}
+          buildingId={buildingId}
+          onClose={() => setShowMap(false)}
+        />
+      )}
+      {showLog && (
+        <ActivityLogModal
+          activity={activity}
+          date={date}
+          loggedBy={staffName}
+          onClose={() => setShowLog(false)}
+        />
+      )}
+    </>
+  );
+}
+
+// ─── Home activity card (matches ActivityCard visual style) ──────────────────
+
+function HomeActivityCard({ activity, liveStatus, staffMember, isCurrent, onClick }: {
+  activity: Activity;
+  liveStatus: ActivityStatus | null;
+  staffMember: StaffMember | null;
+  isCurrent: boolean;
+  onClick: () => void;
+}) {
+  const isAvlyst = liveStatus?.status === 'avlyst';
+  const displayName = staffMember?.name ?? activity.staff_name;
+  const load = activity.load_level ? LOAD[activity.load_level] : null;
+  const statusMeta = liveStatus ? STATUS_META[liveStatus.status] : null;
+  const timeLabel = isCurrent ? formatRemaining(activity.time_end) : formatUntil(activity.time_start);
+
+  return (
+    <div>
+      {/* Label row above card */}
+      <div className="flex items-center gap-2 mb-2 px-1">
+        <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+          {isCurrent ? 'Pågår nå' : 'Neste aktivitet'}
+        </span>
+        {isCurrent && !isAvlyst && (
+          <span className="inline-flex items-center gap-1 bg-red-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">
+            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+            LIVE
+          </span>
+        )}
+        {statusMeta && (
+          <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${statusMeta.bg} ${statusMeta.text}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${statusMeta.dot}`} />
+            {statusMeta.label}
+            {liveStatus?.note && <span className="font-normal"> · {liveStatus.note}</span>}
+          </span>
+        )}
+        {timeLabel && !isAvlyst && (
+          <span className="text-xs text-gray-400 ml-auto font-medium">{timeLabel}</span>
+        )}
+      </div>
+
+      {/* Card */}
+      <button
+        onClick={onClick}
+        className={`w-full text-left rounded-3xl border transition-all active:scale-[0.99] ${
+          isCurrent && !isAvlyst
+            ? 'p-5 border-emerald-200 bg-gradient-to-br from-emerald-50/60 to-white shadow-[0_4px_20px_rgba(16,185,129,0.12)]'
+            : isAvlyst
+            ? 'p-5 border-gray-200 bg-gray-100'
+            : 'p-4 border-gray-100 bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.07)]'
+        }`}
+      >
+        <div className="flex items-start gap-3">
+          {/* Time block */}
+          <div className={`flex flex-col items-center justify-center rounded-2xl px-3 py-2 min-w-[68px] ${
+            isCurrent && !isAvlyst
+              ? 'bg-emerald-100'
+              : 'bg-gradient-to-br from-blue-50 to-blue-100'
+          }`}>
+            <span className={`text-base font-bold tabular-nums leading-tight ${isCurrent && !isAvlyst ? 'text-emerald-900' : 'text-blue-900'}`}>
+              {activity.time_start.slice(0, 5)}
+            </span>
+            <span className={`text-[10px] font-medium tabular-nums tracking-wide ${isCurrent && !isAvlyst ? 'text-emerald-600' : 'text-blue-500'}`}>
+              — {activity.time_end.slice(0, 5)}
+            </span>
+          </div>
+
+          <div className="flex-1 min-w-0 pt-0.5">
+            <p className={`leading-tight tracking-tight ${isAvlyst ? 'line-through text-gray-400 font-bold text-base' : isCurrent ? 'font-black text-lg text-gray-900' : 'font-bold text-base text-gray-900'}`}>
+              {activity.name}
+            </p>
+            {load && (
+              <span className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1 ${load.bg} ${load.text}`}>
+                {activity.load_level === 'lav' ? '🟢 Lav belastning'
+                  : activity.load_level === 'middels' ? '🟡 Middels belastning'
+                  : '🔴 Høy belastning'}
+              </span>
+            )}
+            {activity.location && (
+              <p className="text-sm text-gray-500 mt-0.5">{activity.location}</p>
+            )}
+            {(activity.transition_flags?.length > 0 || activity.transition_note) && (
+              <div className="mt-1.5">
+                <TransitionBadges flags={activity.transition_flags ?? []} note={activity.transition_note} size="sm" />
+              </div>
+            )}
+            {displayName && (
+              <div className="flex items-center gap-1.5 mt-1.5">
+                <StaffAvatar name={displayName} photoUrl={staffMember?.photo_url ?? null} size="sm" />
+                <span className="text-xs text-gray-600 font-medium">{displayName.split(' ')[0]}</span>
+              </div>
+            )}
+          </div>
+
+          <ChevronRight size={18} className="text-gray-300 flex-shrink-0 mt-1" />
+        </div>
+      </button>
+    </div>
+  );
+}
+
+// ─── Unread messages widget ───────────────────────────────────────────────────
+
+function MessagesCard() {
+  const [counts, setCounts] = useState<{ gruppe: number; stab: number }>({ gruppe: 0, stab: 0 });
+
+  useEffect(() => {
+    const senderName = localStorage.getItem('lederMode') === 'true'
+      ? (localStorage.getItem('staffName') || 'Leder')
+      : (localStorage.getItem('parentName') || localStorage.getItem('childName') || '');
+    const seenGruppe = localStorage.getItem('msgSeenAt_gruppe') ?? new Date(0).toISOString();
+    const seenStab = localStorage.getItem('msgSeenAt_stab') ?? new Date(0).toISOString();
+
+    Promise.all([
+      supabase.from('messages').select('id', { count: 'exact', head: true })
+        .eq('channel', 'gruppe').gt('created_at', seenGruppe).neq('sender_name', senderName),
+      supabase.from('messages').select('id', { count: 'exact', head: true })
+        .eq('channel', 'stab').gt('created_at', seenStab).neq('sender_name', senderName),
+    ]).then(([g, s]) => {
+      setCounts({ gruppe: g.count ?? 0, stab: s.count ?? 0 });
+    });
+  }, []);
+
+  const total = counts.gruppe + counts.stab;
+
+  return (
+    <Link href="/chat"
+      className="flex items-center justify-between bg-white rounded-2xl px-4 py-3.5 shadow-sm border border-gray-100 active:scale-[0.98] transition-all">
+      <div className="flex items-center gap-3">
+        <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+          <MessageCircle size={18} className="text-blue-600" />
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-gray-900">Meldinger</p>
+          {total > 0 ? (
+            <p className="text-xs text-gray-500">
+              {counts.gruppe > 0 && `${counts.gruppe} ny${counts.gruppe > 1 ? 'e' : ''} i Gruppe`}
+              {counts.gruppe > 0 && counts.stab > 0 && ' · '}
+              {counts.stab > 0 && `${counts.stab} ny${counts.stab > 1 ? 'e' : ''} fra Stab`}
+            </p>
+          ) : (
+            <p className="text-xs text-gray-400">Ingen uleste meldinger</p>
+          )}
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        {total > 0 && (
+          <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] font-black flex items-center justify-center">
+            {total > 9 ? '9+' : total}
+          </span>
+        )}
+        <ChevronRight size={16} className="text-gray-300" />
+      </div>
+    </Link>
+  );
+}
+
+// ─── Fellesrom mini ───────────────────────────────────────────────────────────
+
+function FellesromMini() {
+  const [checkins, setCheckins] = useState<RoomCheckin[]>([]);
+
+  useEffect(() => {
+    supabase.from('room_checkins').select('*')
+      .gt('expires_at', new Date().toISOString())
+      .order('checked_in_at')
+      .then(({ data }) => setCheckins((data ?? []) as RoomCheckin[]));
+  }, []);
+
+  useEffect(() => {
+    const channel = supabase.channel('checkins-overview')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'room_checkins' }, payload => {
+        if (payload.eventType === 'INSERT') {
+          const c = payload.new as RoomCheckin;
+          setCheckins(prev => new Date(c.expires_at) > new Date() ? [...prev.filter(x => x.id !== c.id), c] : prev);
+        } else if (payload.eventType === 'DELETE') {
+          setCheckins(prev => prev.filter(c => c.id !== (payload.old as RoomCheckin).id));
+        }
+      }).subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
+  return (
+    <Link href="/fellesrom"
+      className="flex items-center justify-between bg-white rounded-2xl px-4 py-3.5 shadow-sm border border-gray-100 active:scale-[0.98] transition-all">
+      <div className="flex items-center gap-3">
+        <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center flex-shrink-0">
+          <Users size={18} className="text-indigo-600" />
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-gray-900">I fellesrom nå</p>
+          {checkins.length === 0 ? (
+            <p className="text-xs text-gray-400">Ingen er ute akkurat nå</p>
+          ) : (
+            <p className="text-xs text-gray-500 leading-relaxed">
+              {checkins.slice(0, 3).map(c => `${c.parent_name} · ${c.room_name}`).join(' — ')}
+              {checkins.length > 3 && ` +${checkins.length - 3} til`}
+            </p>
+          )}
+        </div>
+      </div>
+      <ChevronRight size={16} className="text-gray-300" />
+    </Link>
+  );
+}
+
+// ─── No activities state ──────────────────────────────────────────────────────
+
+function NoActivityCard() {
+  return (
+    <div className="bg-gray-50 rounded-3xl p-8 text-center border border-gray-100">
+      <p className="text-3xl mb-2">🎉</p>
+      <p className="font-bold text-gray-700">Fri resten av dagen!</p>
+      <p className="text-sm text-gray-400 mt-1">Ingen flere aktiviteter i dag</p>
+    </div>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
+export function StatusDashboard() {
+  const [childName] = useState<string>(() => {
+    if (typeof window === 'undefined') return '';
+    return localStorage.getItem('childName') ?? 'Evelina';
+  });
+  const isStaff = typeof window !== 'undefined' && localStorage.getItem('lederMode') === 'true';
+  const staffName = typeof window !== 'undefined' ? (localStorage.getItem('staffName') || 'Leder') : 'Leder';
+
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [statuses, setStatuses] = useState<Record<string, ActivityStatus>>({});
+  const [staffMap, setStaffMap] = useState<Record<string, StaffMember>>({});
+  const [childProfiles, setChildProfiles] = useState<ChildProfile[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [, setTick] = useState(0);
+  const [detailActivity, setDetailActivity] = useState<Activity | null>(null);
+  const [editActivity, setEditActivity] = useState<Activity | null>(null);
+  const [attendanceActivity, setAttendanceActivity] = useState<Activity | null>(null);
+
+  // Refresh time every 30s
+  useEffect(() => {
+    const id = setInterval(() => setTick(t => t + 1), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Fetch staff — only needed for leder detail view
+  useEffect(() => {
+    if (!isStaff) return;
+    supabase.from('staff').select('*').then(({ data }) => {
+      if (data) {
+        const m: Record<string, StaffMember> = {};
+        for (const s of data) m[s.id] = s as StaffMember;
+        setStaffMap(m);
+      }
+    });
+  }, [isStaff]);
+
+  // Fetch children — only needed for leder attendance view
+  useEffect(() => {
+    if (!isStaff) return;
+    supabase.from('children').select('*').then(({ data }) => {
+      if (data) setChildProfiles(data as ChildProfile[]);
+    });
+  }, [isStaff]);
+
+  // Fetch activities + statuses in parallel — direct Supabase queries, no serverless round-trip
+  useEffect(() => {
+    const today = cestDate().toISOString().slice(0, 10);
+    const dayOfWeek = todayDayOfWeek();
+    const ws = currentWeekStart();
+    const weDate = new Date(ws + 'T12:00:00');
+    weDate.setUTCDate(weDate.getUTCDate() + 6);
+    const we = weDate.toISOString().slice(0, 10);
+
+    // Show cached activities immediately so the screen isn't blank while fetching
+    try {
+      const cached = localStorage.getItem(`sd_acts_${today}`);
+      if (cached) {
+        const parsed = JSON.parse(cached) as Activity[];
+        setActivities(
+          parsed
+            .filter(a => !a.target_child || a.target_child.toLowerCase() === childName.toLowerCase())
+            .sort((a, b) => a.time_start.localeCompare(b.time_start))
+        );
+        setLoading(false);
+      }
+    } catch {}
+
+    Promise.all([
+      supabase.from('activities').select('*').eq('is_fritid', false).gte('week_start', ws).lte('week_start', we).order('day_of_week').order('time_start'),
+      supabase.from('activities').select('*').eq('is_fritid', true).gte('week_start', ws).lte('week_start', we).order('day_of_week').order('time_start'),
+      supabase.from('activity_status').select('*').eq('date', today),
+    ])
+      .then(([{ data: acts }, { data: frits }, { data: statusData }]) => {
+        const all: Activity[] = [...((acts as Activity[]) ?? []), ...((frits as Activity[]) ?? [])];
+        const todayActs = all
+          .filter(a => a.day_of_week === dayOfWeek)
+          .filter(a => !a.target_child || a.target_child.toLowerCase() === childName.toLowerCase())
+          .sort((a, b) => a.time_start.localeCompare(b.time_start));
+        setActivities(todayActs);
+        const map: Record<string, ActivityStatus> = {};
+        for (const s of ((statusData as ActivityStatus[]) ?? [])) map[s.activity_id] = s;
+        setStatuses(map);
+        setLoading(false);
+        try { localStorage.setItem(`sd_acts_${today}`, JSON.stringify(all.filter(a => a.day_of_week === dayOfWeek))); } catch {}
+      })
+      .catch(() => setLoading(false));
+  }, [childName]);
+
+  // Realtime status updates
+  useEffect(() => {
+    const today = cestDate().toISOString().slice(0, 10);
+    const channel = supabase.channel('activity_status_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'activity_status', filter: `date=eq.${today}` },
+        payload => {
+          if (payload.eventType === 'DELETE') {
+            setStatuses(prev => { const n = { ...prev }; delete n[(payload.old as ActivityStatus).activity_id]; return n; });
+          } else {
+            const s = payload.new as ActivityStatus;
+            setStatuses(prev => ({ ...prev, [s.activity_id]: s }));
+          }
+        }
+      ).subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
+  const today = cestDate().toISOString().slice(0, 10);
+  const mins = nowMins();
+  const current = activities.find(a => toMins(a.time_start) <= mins && toMins(a.time_end) >= mins) ?? null;
+  const nextUpcoming = activities.find(a => toMins(a.time_start) > mins) ?? null;
+
+  return (
+    <div className="px-4 pt-4 pb-8 flex flex-col gap-4">
+      {/* Greeting */}
+      <div>
+        <h2 className="text-2xl font-black text-gray-900 leading-tight">
+          {greeting(childName.split(' ')[0])}
+        </h2>
+        <p className="text-sm text-gray-500 mt-0.5 capitalize">
+          {format(cestDate(), 'EEEE d. MMMM', { locale: nb })}
+        </p>
+      </div>
+
+      {/* NÅ / NESTE — most important element, at top */}
+      {loading ? (
+        <div className="flex flex-col gap-3">
+          <div className="rounded-3xl bg-gray-100 h-32 animate-pulse" />
+          <div className="rounded-3xl bg-gray-100 h-28 animate-pulse opacity-60" />
+        </div>
+      ) : !current && !nextUpcoming ? (
+        <NoActivityCard />
+      ) : (
+        <div className="flex flex-col gap-3">
+          {current && (
+            <HomeActivityCard
+              activity={current}
+              liveStatus={statuses[current.id] ?? null}
+              staffMember={current.staff_id ? (staffMap[current.staff_id] ?? null) : null}
+              isCurrent={true}
+              onClick={() => setDetailActivity(current)}
+            />
+          )}
+          {nextUpcoming && (
+            <HomeActivityCard
+              activity={nextUpcoming}
+              liveStatus={statuses[nextUpcoming.id] ?? null}
+              staffMember={nextUpcoming.staff_id ? (staffMap[nextUpcoming.staff_id] ?? null) : null}
+              isCurrent={false}
+              onClick={() => setDetailActivity(nextUpcoming)}
+            />
+          )}
+        </div>
+      )}
+
+      {/* Dagsform */}
+      <DagsformWidget childName={childName} isLeder={isStaff} />
+
+      {/* Oppdateringer */}
+      {!isStaff && <NotificationFeed />}
+
+      {/* Messages + Fellesrom + Senterinfo */}
+      <MessagesCard />
+      <FellesromMini />
+      <Link href="/senterinfo"
+        className="flex items-center justify-between bg-white rounded-2xl px-4 py-3.5 shadow-sm border border-gray-100 active:scale-[0.98] transition-all">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-teal-50 flex items-center justify-center flex-shrink-0">
+            <Info size={18} className="text-teal-600" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-gray-900">Praktisk senterinfo</p>
+            <p className="text-xs text-gray-400">WiFi, måltider, telefonnumre m.m.</p>
+          </div>
+        </div>
+        <ChevronRight size={16} className="text-gray-300" />
+      </Link>
+
+      {/* Detail modal */}
+      {detailActivity && (
+        <ActivityDetailModal
+          activity={detailActivity}
+          liveStatus={statuses[detailActivity.id] ?? null}
+          staffMember={detailActivity.staff_id ? (staffMap[detailActivity.staff_id] ?? null) : null}
+          children={childProfiles}
+          isLeder={isStaff}
+          staffName={staffName}
+          date={today}
+          onStatusSave={s => setStatuses(prev => ({ ...prev, [s.activity_id]: s }))}
+          onEdit={isStaff ? () => { setDetailActivity(null); setEditActivity(detailActivity); } : undefined}
+          onAttendance={isStaff ? () => { setDetailActivity(null); setAttendanceActivity(detailActivity); } : undefined}
+          onClose={() => setDetailActivity(null)}
+        />
+      )}
+
+      {/* Edit activity (leder) */}
+      {editActivity && (
+        <ActivityEditModal
+          activity={editActivity}
+          allStaff={Object.values(staffMap)}
+          onClose={() => setEditActivity(null)}
+          onSaved={({ name, time_start, time_end, location, notes, load_level, staffIds, transition_flags, transition_note, packing_items }) => {
+            setActivities(prev => prev.map(a =>
+              a.id === editActivity.id ? { ...a, name, time_start, time_end, location, notes, load_level, staff_id: staffIds[0] ?? null, transition_flags, transition_note, packing_items: packing_items ?? [] } : a
+            ));
+          }}
+        />
+      )}
+
+      {/* Attendance (leder) */}
+      {attendanceActivity && (
+        <AttendanceModal
+          activity={attendanceActivity}
+          date={today}
+          markedBy={staffName}
+          onClose={() => setAttendanceActivity(null)}
+        />
+      )}
+    </div>
+  );
+}

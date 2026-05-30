@@ -126,8 +126,15 @@ export function ChatClient() {
 
   return (
     <div
-      className="flex flex-col bg-white max-w-lg mx-auto"
-      style={{ height: 'calc(100svh - 110px)', paddingBottom: 'calc(57px + env(safe-area-inset-bottom, 0px))' }}
+      className="flex flex-col bg-white"
+      style={{
+        position: 'fixed',
+        top: 110,
+        left: 0,
+        right: 0,
+        bottom: 'calc(57px + env(safe-area-inset-bottom, 0px))',
+        zIndex: 10,
+      }}
     >
 
       {/* Tabs */}

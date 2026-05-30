@@ -108,8 +108,15 @@ export function LederInbox() {
   if (active) {
     return (
       <div
-        className="flex flex-col max-w-lg mx-auto bg-white"
-        style={{ height: 'calc(100svh - 110px)', paddingBottom: 'calc(57px + env(safe-area-inset-bottom, 0px))' }}
+        className="flex flex-col bg-white"
+        style={{
+          position: 'fixed',
+          top: 110,
+          left: 0,
+          right: 0,
+          bottom: 'calc(57px + env(safe-area-inset-bottom, 0px))',
+          zIndex: 10,
+        }}
       >
         {/* Thread header */}
         <div className="flex-shrink-0 px-4 pt-4 pb-3 border-b border-gray-100 flex items-center gap-3">

@@ -11,6 +11,16 @@ async function pushNotification(groupId: string, type: string, title: string, bo
   await supabase.from('notifications').insert({ group_id: groupId, type, title, body: body ?? null, activity_id: activityId ?? null });
 }
 
+const TIME_SLOTS = (() => {
+  const slots: string[] = [];
+  for (let mins = 7 * 60; mins <= 21 * 60 + 30; mins += 30) {
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    slots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+  }
+  return slots;
+})();
+
 const LOAD_OPTIONS = [
   { value: 'lav',     label: 'Lav',     bg: 'bg-green-500', ring: 'ring-green-400' },
   { value: 'middels', label: 'Middels', bg: 'bg-amber-400', ring: 'ring-amber-400' },
@@ -181,21 +191,23 @@ export function ActivityEditModal({
                 <div className="flex gap-2">
                   <div className="flex-1">
                     <p className="text-[10px] font-semibold text-gray-400 mb-1 ml-1">Start</p>
-                    <input
-                      type="time"
+                    <select
                       value={timeStart}
                       onChange={e => setTimeStart(e.target.value)}
-                      className="w-full border border-gray-200 rounded-2xl px-4 py-2.5 text-sm outline-none focus:border-blue-400"
-                    />
+                      className="w-full border border-gray-200 rounded-2xl px-4 py-2.5 text-sm outline-none focus:border-blue-400 bg-white appearance-none"
+                    >
+                      {TIME_SLOTS.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
                   </div>
                   <div className="flex-1">
                     <p className="text-[10px] font-semibold text-gray-400 mb-1 ml-1">Slutt</p>
-                    <input
-                      type="time"
+                    <select
                       value={timeEnd}
                       onChange={e => setTimeEnd(e.target.value)}
-                      className="w-full border border-gray-200 rounded-2xl px-4 py-2.5 text-sm outline-none focus:border-blue-400"
-                    />
+                      className="w-full border border-gray-200 rounded-2xl px-4 py-2.5 text-sm outline-none focus:border-blue-400 bg-white appearance-none"
+                    >
+                      {TIME_SLOTS.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
                   </div>
                 </div>
                 <input
